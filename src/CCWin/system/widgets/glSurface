@@ -1,0 +1,68 @@
+function Create(_parent, name)
+	local glSurface = {
+		parent = _parent,
+		left = 1,
+		top = 1, 
+		height = 16,
+		width = 24,
+		focused = false,
+		visible = true,
+		glRender = nil,
+		--glRender = function(self, gl)
+
+
+		refresh = function(self)
+			local canvas = self.parent:getCanvas()
+			canvas:fillrect(self.left, self.top, self.width, self.height, 0)
+
+			if self.glRender ~= nil then
+				--[[gl = {
+					write = function(str)
+						for i = 1, string.len(str) do
+							local x, y = term.getCursorPos()
+							if x + self.left + 1 < self.left + 
+						end
+				}]]
+				gl = {
+					write = term.write,
+					clear = term.clear,
+					clearLine = term.clearLine,
+
+					getCursorPos = function()
+						local x, y = term.getCursorPos()
+						return x - self.left, y - self.top
+					end,
+
+					setCursorPos = function(x, y)
+						term.setCursorPos(x + self.left, y + self.top)
+					end,
+
+					setCursorBlink = function(bool)
+					end,
+
+					isColor = term.isColor,
+
+					getSize = function()
+						return self.width, self.height
+					end,
+
+					scroll = term.scroll,
+
+					redirect = function(target)
+					end,
+
+					setTextColor = term.setTextColor,
+					setBackgroundColor = term.setBackgroundColor,
+				}
+
+				self:glRender(gl)
+			end
+		end,
+	}
+
+
+	_parent.widgets[name] = glSurface
+	_parent.lastZOrder = _parent.lastZOrder + 1
+	glSurface.zOrder = _parent.lastZOrder
+	return glSurface
+end

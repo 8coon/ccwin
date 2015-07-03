@@ -1,0 +1,287 @@
+
+function MessageBoxCreate(message, canvas, buttons)
+	local messageBox = {
+		message = message,
+		canvas = canvas,
+		height = 8,
+		width = 32,
+		widgets = {},
+		buttonsLib = buttons,
+		parent = {
+			canvas = canvas
+		},
+		lastZOrder = 0,
+		focusedWidget = nil,
+
+
+		refresh = function(self)
+			if self.canvas ~= nil then
+				self.canvas:fillrect(math.floor(self.canvas.size.x / 2) - math.floor(self.width / 2) + 1, math.floor(self.canvas.size.y / 2)  - math.floor(self.height / 2) + 1, 
+					self.width, self.height, colors.black)
+				self.canvas:fillrect(math.floor(self.canvas.size.x / 2) - math.floor(self.width / 2), math.floor(self.canvas.size.y / 2)  - math.floor(self.height / 2), 
+					self.width, self.height, colors.blue)
+				self.canvas:fillrect(math.floor(self.canvas.size.x / 2) - math.floor(self.width / 2) + 1, math.floor(self.canvas.size.y / 2)  - math.floor(self.height / 2) + 1, 
+					self.width - 2, self.height - 2, colors.lightGray)
+
+				self.canvas.bgcolor = colors.lightGray
+				self.canvas.forecolor = colors.black
+
+				local texts = user.split(self.message.text, "\n")
+
+				for i, v in ipairs(texts) do
+					if i <= 3 then
+						self.canvas:setCursorPos(math.floor(self.canvas.size.x / 2) - math.floor(self.width / 2) + 2, math.floor(self.canvas.size.y / 2)  -
+							math.floor(self.height / 2) + 1 + i)
+						local str = v
+
+						if string.len(str) > self.width - 3 then
+							str = string.sub(str, 1, self.width - 5) .. ".."
+						end
+
+						self.canvas:write(str)
+					end
+				end
+
+
+				local caption = self.message.caption
+				if string.len(caption) > self.width then
+					caption = string.sub(caption, 1, self.width - 2) .. ".."
+				end
+
+				self.canvas:setCursorPos(math.floor(self.canvas.size.x / 2) - math.floor(string.len(caption) / 2), math.floor(self.canvas.size.y / 2)  -
+					math.floor(self.height / 2))
+				self.canvas.bgcolor = colors.blue
+				self.canvas.forecolor = colors.white
+				self.canvas:write(caption)
+
+
+				if self.message.buttons ~= nil then
+					self.widgets = {}
+					local width = -1
+
+					if #self.message.buttons > 1 then
+						for i, v in ipairs(self.message.buttons) do
+							local w = self.buttonsLib.Create(self, i)
+							w.width = 9
+							w.left = math.floor(self.canvas.size.x / 2) - --[[math.floor(w.width / 2) -]] width
+							width = width + w.width + 1
+							w.top = math.floor(self.canvas.size.y / 2) - math.floor(self.height / 2) + self.height - 3
+							w.height = 1
+							w.caption = v.caption
+							w.onClick = v.onClick
+						end
+					else
+						local v = self.message.buttons[1]
+						local w = self.buttonsLib.Create(self, 1)
+						w.width = 9
+						w.left = math.floor(self.canvas.size.x / 2) - math.floor(w.width / 2)
+						w.top = math.floor(self.canvas.size.y / 2) - math.floor(self.height / 2) + self.height - 3
+						w.height = 1
+						w.caption = v.caption
+						w.onClick = v.onClick
+					end
+
+					self.message.buttons = nil
+				end
+
+				if self.widgets ~= nil then
+					for i, v in ipairs(self.widgets) do
+						v:refresh()
+					end
+				end
+			end
+		end,
+
+		mouseClick = function(self, button, x, y)
+			if self.widgets ~= nil then
+				for i, widget in ipairs(self.widgets) do
+					if (x >= widget.left) and (x < widget.left + widget.width) and 
+					   (y > widget.top) and (y <= widget.top + widget.height) then
+						self.focusedWidget = widget
+
+						if button == 1 then
+							if widget.onClick ~= nil then
+								widget:onClick()
+							end
+						else
+							if widget.onPopup ~= nil then
+								widget:onPopup()
+							end
+						end
+
+						if widget.onMouseClick ~= nil then
+							widget:onMouseClick(button, x, y)
+						end
+
+						if widget.mouseClick ~= nil then
+							widget:mouseClick(button, x, y)
+						end
+					end
+				end
+			end
+		end,
+
+
+		getCanvas = function(self)
+			return self.canvas
+		end
+	}
+
+
+	return messageBox
+end
+
+
+
+
+
+
+
+
+function InputBoxCreate(message, canvas, buttons)
+	local messageBox = {
+		message = message,
+		canvas = canvas,
+		height = 8,
+		width = 32,
+		widgets = {},
+		buttonsLib = buttons,
+		parent = {
+			canvas = canvas
+		},
+		lastZOrder = 0,
+		focusedWidget = nil,
+
+
+		refresh = function(self)
+			if self.canvas ~= nil then
+				self.canvas:fillrect(math.floor(self.canvas.size.x / 2) - math.floor(self.width / 2) + 1, math.floor(self.canvas.size.y / 2)  - math.floor(self.height / 2) + 1, 
+					self.width, self.height, colors.black)
+				self.canvas:fillrect(math.floor(self.canvas.size.x / 2) - math.floor(self.width / 2), math.floor(self.canvas.size.y / 2)  - math.floor(self.height / 2), 
+					self.width, self.height, colors.blue)
+				self.canvas:fillrect(math.floor(self.canvas.size.x / 2) - math.floor(self.width / 2) + 1, math.floor(self.canvas.size.y / 2)  - math.floor(self.height / 2) + 1, 
+					self.width - 2, self.height - 2, colors.lightGray)
+
+				self.canvas.bgcolor = colors.lightGray
+				self.canvas.forecolor = colors.black
+
+
+				self.canvas:setCursorPos(math.floor(self.canvas.size.x / 2) - math.floor(self.width / 2) + 2, math.floor(self.canvas.size.y / 2)  -
+							math.floor(self.height / 2) + 2)
+				self.canvas:write(self.message.text)
+
+
+				if self.widgets.edit == nil then
+					self.widgets.edit = edit.Create(self, "edit")
+					self.widgets.edit.left = math.floor((self.canvas.size.x / 2) - (self.width / 2)) + 2
+					self.widgets.edit.width = self.width - 3
+					self.widgets.edit.top = math.floor(self.canvas.size.y / 2) -
+							math.floor(self.height / 2) + 3
+					self.widgets.edit.text = self.message.defText
+				end
+
+				self.widgets.edit:refresh()
+				self.widgets.edit.focused = true
+				self.focutedWidget = self.widgets.edit
+
+
+				local caption = self.message.caption
+				if string.len(caption) > self.width then
+					caption = string.sub(caption, 1, self.width - 2) .. ".."
+				end
+
+				self.canvas:setCursorPos(math.floor(self.canvas.size.x / 2) - math.floor(string.len(caption) / 2), math.floor(self.canvas.size.y / 2)  -
+					math.floor(self.height / 2))
+				self.canvas.bgcolor = colors.blue
+				self.canvas.forecolor = colors.white
+				self.canvas:write(caption)
+
+
+				if self.message.buttons ~= nil then
+					self.widgets = {}
+					local width = -1
+
+					if #self.message.buttons > 1 then
+						for i, v in ipairs(self.message.buttons) do
+							local w = self.buttonsLib.Create(self, i)
+							w.width = 9
+							w.left = math.floor(self.canvas.size.x / 2) - --[[math.floor(w.width / 2) -]] width
+							width = width + w.width + 1
+							w.top = math.floor(self.canvas.size.y / 2) - math.floor(self.height / 2) + self.height - 3
+							w.height = 1
+							w.caption = v.caption
+							w.onClick = v.onClick
+						end
+					else
+						local v = self.message.buttons[1]
+						local w = self.buttonsLib.Create(self, 1)
+						w.width = 9
+						w.left = math.floor(self.canvas.size.x / 2) - math.floor(w.width / 2)
+						w.top = math.floor(self.canvas.size.y / 2) - math.floor(self.height / 2) + self.height - 3
+						w.height = 1
+						w.caption = v.caption
+						w.onClick = v.onClick
+					end
+
+					self.message.buttons = nil
+				end
+
+				if self.widgets ~= nil then
+					for i, v in ipairs(self.widgets) do
+						v:refresh()
+					end
+				end
+			end
+		end,
+
+		mouseClick = function(self, button, x, y)
+			if self.widgets ~= nil then
+				for i, widget in ipairs(self.widgets) do
+					if (x >= widget.left) and (x < widget.left + widget.width) and 
+					   (y > widget.top) and (y <= widget.top + widget.height) then
+						self.focusedWidget = widget
+						widget.focused = true
+
+						if button == 1 then
+							if widget.onClick ~= nil then
+								widget:onClick()
+							end
+						else
+							if widget.onPopup ~= nil then
+								widget:onPopup()
+							end
+						end
+
+						if widget.onMouseClick ~= nil then
+							widget:onMouseClick(button, x, y)
+						end
+
+						if widget.mouseClick ~= nil then
+							widget:mouseClick(button, x, y)
+						end
+					end
+				end
+			end
+		end,
+
+
+		keyPress = function(self, key, char)
+			--error(key .. " " .. char)
+			--if self.focusedWidget ~= nil then
+			--	if self.focusedWidget.keyPress ~= nil then
+			--		self.focusedWidget:keyPress(key, char)
+			--	end
+			--end
+			--error(key .. "k")
+			self.widgets.edit:keyPress(key, char)
+		end,
+
+
+		getCanvas = function(self)
+			return self.canvas
+		end
+	}
+
+
+	return messageBox
+end

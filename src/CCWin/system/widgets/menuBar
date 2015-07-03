@@ -1,0 +1,63 @@
+
+function Create(_parent, name)
+	local menuBar = panel.Create(_parent, name)
+	menuBar.items = {}
+
+
+	menuBar.oldRefresh = menuBar.refresh
+	menuBar.alignTop = true
+
+	menuBar.refresh = function(self)
+		self.width = self.parent:getCanvas().size.x
+		self.height = 1
+		
+		if self.apignTop then
+			self.top = 1
+		end
+		
+		self.left = 0
+		self.bgcolor = colors.white
+
+		self.widgets = {}
+		local totalWidth = 1
+
+
+		for i, v in ipairs(self.items) do
+			local width = string.len(v.name) + 2
+			local item = label.Create(self, "label_" .. tostring(i))
+			item.parent = self
+
+			item.bgcolor = colors.white
+			item.forecolor = colors.black
+			item.forecolor2 = colors.red
+			item.width = width
+			item.left = totalWidth
+			item.caption = v.name
+
+			--item.onClick = function(sender)
+			--	local a = menuBar.os.popupMenu(sender.menu, sender.left, sender.top + 1)
+			--end
+			item.onClick = v.onClick
+
+			totalWidth = totalWidth + width
+		end
+
+		self:oldRefresh()
+	end
+
+
+	_parent.widgets[name] = menuBar
+	_parent.lastZOrder = _parent.lastZOrder + 1
+	menuBar.zOrder = _parent.lastZOrder
+	return menuBar
+end
+
+
+function CreateItem(_name, _onClick)
+	local item = {
+		name = _name,
+		onClick = _onClick,
+	}
+
+	return item
+end

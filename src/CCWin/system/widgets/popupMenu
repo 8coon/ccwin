@@ -1,0 +1,137 @@
+
+
+function Create()
+	local popupMenu = {
+		canvas = nil,
+		pleft = 1,
+		ptop = 1,
+		left = 1,
+		top = 1,
+		height = 0,
+		width = 0,
+		bgcolor = colors.white,
+		forecolor = colors.black,
+		forecolor2 = colors.red,
+		focused = false,
+		visible = true,
+		showing = false,
+		items = {},
+
+
+		refresh = function(self)
+			local canvas = self.canvas
+			local items = self.items
+			local x = self.left
+			local y = self.top
+			local maxWidth = 0
+
+
+
+			if (self.showing) and (#items > 0) and (canvas ~= nil) then
+				for k, v in pairs(items) do
+					if string.len(v.text) > maxWidth then maxWidth = string.len(v.text) end
+				end
+
+				self.height = #items - 1
+				self.width = maxWidth
+				self.left = self.pleft
+
+				if (canvas.size.y - self.ptop < self.height + 1) then
+					canvas:fillrect(self.pleft + 1, self.ptop - self.height + 1, self.width, self.height, colors.black)
+					canvas:fillrect(self.pleft, self.ptop - self.height, self.width, self.height, self.bgcolor)
+					canvas.bgcolor = self.bgcolor
+					canvas.forecolor = self.forecolor
+
+					for i, v in ipairs(items) do
+						canvas:setCursorPos(self.pleft, self.ptop - i + 1)
+						--canvas:write(v.text)
+						if v.text ~= "-" then
+							canvas.forecolor = self.forecolor2
+							canvas:write(string.sub(v.text, 1, 1))
+							canvas.forecolor = self.forecolor
+							canvas:write(string.sub(v.text, 2))
+						else
+							canvas.forecolor = colors.lightGray
+							canvas:write(string.rep("-", self.width))
+						end
+					end
+
+					self.top = self.ptop - self.height
+				else
+					canvas:fillrect(self.pleft + 1, self.ptop + 1, self.width, self.height, colors.black)
+					canvas:fillrect(self.pleft, self.ptop, self.width, self.height, self.bgcolor)
+					canvas.bgcolor = self.bgcolor
+					canvas.forecolor = self.forecolor
+
+					for i, v in ipairs(items) do
+						canvas:setCursorPos(self.pleft, self.ptop + i - 1)
+
+						if v.text ~= "-" then
+							canvas.forecolor = self.forecolor2
+							canvas:write(string.sub(v.text, 1, 1))
+							canvas.forecolor = self.forecolor
+							canvas:write(string.sub(v.text, 2))
+						else
+							canvas.forecolor = colors.lightGray
+							canvas:write(string.rep("-", self.width))
+						end
+					end
+
+					self.top = self.ptop
+				end
+
+
+			else
+				self.showing = false
+			end
+		end,
+
+
+		popUp = function(self, x, y)
+			self.pleft = x
+			self.ptop = y
+			self.showing = true
+		end,
+
+
+		mouseClick = function(self, button, x, y)
+			if (self.canvas.size.y - self.ptop < self.height + 1) then
+				if (x >= self.left) and (x <= self.left + self.width) and (y >= self.top) and (y <= self.top + self.height) then
+					local items = self.items
+					local index = #items - (y - self.top - 0)
+
+					if items[index] ~= nil then
+						if items[index].onClick ~= nil then
+							items[index]:onClick()
+						end
+					end
+				end
+			else
+				if (x >= self.left) and (x <= self.left + self.width) and (y >= self.top) and (y <= self.top + self.height) then
+					local items = self.items
+					local index = y - self.top + 1
+
+					if items[index] ~= nil then
+						if items[index].onClick ~= nil then
+							items[index]:onClick()
+						end
+					end
+				end
+			end
+
+			self.showing = false
+		end,
+	}
+
+	return popupMenu
+end
+
+
+function CreateItem(_text, _onClick)
+	local item = {
+		text = _text,
+		onClick = _onClick,
+	}
+
+	return item
+end

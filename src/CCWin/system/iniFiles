@@ -1,0 +1,101 @@
+
+function split(pString, pPattern)
+   local Table = {}  -- NOTE: use {n = 0} in Lua-5.0
+   local fpat = "(.-)" .. pPattern
+   local last_end = 1
+   local s, e, cap = pString:find(fpat, 1)
+   while s do
+      if s ~= 1 or cap ~= "" then
+		table.insert(Table,cap)
+      end
+      last_end = e+1
+      s, e, cap = pString:find(fpat, last_end)
+   end
+   if last_end <= #pString then
+      cap = pString:sub(last_end)
+      table.insert(Table, cap)
+   end
+   return Table
+end
+
+function string.starts(String,Start)
+   return string.sub(String,1,string.len(Start))==Start
+end
+
+function string.ends(String,End)
+   return End=='' or string.sub(String,-string.len(End))==End
+end
+
+
+
+
+
+
+function read(fileName)
+	local result = {}
+
+	if string.starts(fileName, "home:/") then
+		fileName = string.gsub(fileName, "home:/", "", 1)
+	end
+
+	if fs.exists(fileName) then
+		local file = fs.open(fileName, "r")
+		local data = file.readAll()
+		file.close()
+
+		data = string.gsub(data, "\r", "")
+		local lines = split(data, "\n")
+		local cat = "*"
+
+		for i, v in ipairs(lines) do
+			if (string.len(v) > 0) and (not string.starts(v, ";")) then
+				if string.starts(v, "[") and string.ends(v, "]") then
+					local catName = string.gsub(v, "%[", "")
+					catName = string.gsub(catName, "%]", "")
+					cat = catName
+				else
+					if string.find(v, "=") then
+						local values = split(v, "=")
+
+						if string.ends(values[1], " ") then
+							repeat
+								values[1] = string.sub(values[1], 1, string.len(values[1]) - 1)
+							until not (string.ends(values[1], " "))
+						end
+
+						if string.starts(values[2], " ") then
+							repeat
+								values[2] = string.sub(values[2], 2, string.len(values[2]))
+							until not (string.starts(values[2], " "))
+						end
+
+						if result[cat] == nil then result[cat] = {} end
+						if result[cat][values[1]] == nil then result[cat][values[1]] = {} end
+						result[cat][values[1]] = values[2]
+					end
+				end
+			end
+		end
+
+		return result
+	end
+end
+
+
+function write(fileName, iniData)
+	local data = ""
+
+	for k, v in pairs(iniData) do
+		data = data .. "[" .. k .. "]\r\n"
+
+		for k2, v2 in pairs(v) do
+			if v2 ~= nil then
+				data = data .. k2 .. " = " .. v2 .. "\r\n"
+			end
+		end
+	end
+
+	local file = fs.open(fileName, "w")
+	file.write(data)
+	file.close()
+end

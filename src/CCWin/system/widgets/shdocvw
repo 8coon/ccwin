@@ -1,0 +1,259 @@
+function Create(_parent, name)
+	local shdocvw = {
+		parent = _parent,
+		left = 1,
+		top = 1, 
+		height = 16,
+		width = 24,
+		focused = false,
+		visible = true,
+		canvas = nil,
+		widgets = { },
+		focusedWidget = nil,
+		lastZOrder = 0,
+		parsed = false,
+		os = _parent.parent.os,
+		url = "about:tabs",
+		source = "",
+
+		document = {
+			activeElement = nil,
+
+			paddingLeft = {
+				[1] = 0,
+			},
+
+			blockWidth = {
+			},
+
+
+			style = {
+
+			},
+
+			size = {
+				height = 0,
+				width = 1,
+			}
+		},
+
+
+		refresh = function(self)
+			self.canvas = user.CreateCanvas(self.width, self.height)
+			self.canvas:fillrect(1, 1, self.width, self.height, colors.white)
+
+			if self.widgets.verticalBar == nil then
+				self.widgets.verticalBar = scrollBar.Create(self, "verticalBar")
+				self.widgets.verticalBar.step = 1
+
+				self.widgets.verticalBar.onChange = function(sender)
+					self.scroll.top = self.widgets.verticalBar.value
+				end
+			end
+
+			self.widgets.verticalBar.left = self.width
+			self.widgets.verticalBar.top = 0
+			self.widgets.verticalBar.height = self.height
+
+			self.document.size.width = self.width - 2
+
+			if self.parsed == false then
+				self:parse()
+			end
+
+			--self.canvas:draw(-self.scroll.left, -self.scroll.top, self.widgets.document)
+			--self.widgets.document.left = -
+			self:pageRender()
+
+
+			self.widgets.verticalBar:refresh()
+			self.parent:getCanvas():draw(self.left - 1, self.top, self.canvas)
+
+			--self.parent.parent.os.setCaretPos(self.left + self.cursorPos.x, self.top + self.cursorPos.y)
+
+			--[[if (self.cursorPos.x < self.width - 1) and (self.cursorPos.y - self.scroll.top < self.height) and (self.focused) then
+				self.parent.parent.os.showCaret()
+			else
+				self.parent.parent.os.hideCaret()
+			end]]
+		end,
+
+
+		setElementStyle = function(self, element, style)
+			if self.document.style[style] ~= nil then
+				if self.document.style[style].bgcolor ~= nil then element.bgcolor = self.document.style[style].bgcolor end
+				if self.document.style[style].forecolor ~= nil then element.forecolor = self.document.style[style].forecolor end
+				if self.document.style[style].align ~= nil then element.align = self.document.style[style].align end
+				if self.document.style[style].height ~= nil then element.height = self.document.style[style].height end
+				if self.document.style[style].width ~= nil then element.width = self.document.style[style].width end
+				if self.document.style[style].paddingLeft ~= nil then element.left = element.left + self.document.style[style].paddingLeft end
+				if self.document.style[style].paddingTop ~= nil then element.top = element.top + self.document.style[style].paddingTop end
+			end
+		end,
+
+
+		loadPageFromFile = function(self, url)
+			local file = fs.open(url, "r")
+			local data = file.readAll()
+			file.close()
+			return data
+		end,
+
+
+		parse = function(self)
+			self.document.blockWidth = { [1] = self.canvas.size.x }
+			self.document.paddingLeft = { [1] = 0 }
+
+			self.document.style = {
+				text = {
+					bgcolor = colors.white,
+					forecolor = colors.black,
+					align = "left",
+					paddingLeft = 0,
+				}
+			}
+
+
+			local webenv = {
+				colors = colors,
+				colours = colors,
+
+
+				document = {
+					location = self.url,
+					client = "iDonkey 0.7a [Unstable]",
+					size = {
+						height = self.document.size.height,
+						y = self.document.size.height,
+						width = self.document.size.width,
+						x = self.document.size.x,
+					}
+				},
+
+
+				style = function(t)
+					for k, v in pairs(t) do
+						if self.document.style[k] == nil then self.document.style[k] = {} end
+
+						if type(v) == "table" then
+							if v.bgcolor ~= nil then self.document.style[k].bgcolor = v.bgcolor end
+							if v.forecolor ~= nil then self.document.style[k].forecolor = v.forecolor end
+							if v.align ~= nil then self.document.style[k].align = v.align end
+							if v.height ~= nil then self.document.style[k].height = v.height end
+							if v.width ~= nil then self.document.style[k].width = v.width end
+							if v.paddingLeft ~= nil then self.document.style[k].paddingLeft = v.paddingLeft end
+							if v.paddingTop ~= nil then self.document.style[k].paddingTop = v.paddingTop end
+						end
+					end
+				end,
+
+
+				text = function(id, class, str)
+					local label = label.Create(self.document.activeElement or self, id)
+					label.multiline = true
+					label.caption = str
+					label.left = (self.document.paddingLeft[#(self.document.paddingLeft)] or 0) + 1
+					label.width = self.document.blockWidth[#(self.document.blockWidth)] or self.document.size.width - label.left
+					label.top = self.document.size.height
+					label.webclass = class
+
+					self:setElementStyle(label, "text")
+					self:setElementStyle(label, class)
+					self:setElementStyle(label, id)
+
+					--label:resize()
+					self.document.size.height = label.top + label.height
+				end,
+
+
+				div = function(id, class, size)
+					local div = panel.Create(self.document.activeElement or self, id)
+					div.height = size.height or 2
+					div.width = size.width or 10
+					div.left = size.left or 2
+					div.top = (size.top or 1) + self.document.size.height
+
+					self:setElementStyle(div, "div")
+					self:setElementStyle(div, class)
+					self:setElementStyle(div, id)
+
+					if not (size.float) then
+						self.document.size.height = div.top + div.height
+					end
+
+					self.document.activeElement = div
+				end,
+
+				end_ = function()
+					self.document.activeElement = self.document.activeElement.parent or self
+					if self.document.activeElement == self then self.document.activeElement = nil end
+				end,
+			}
+
+
+			local s = self:getTestPage()
+			local page = loadstring(s)
+
+			if page == nil then
+				error("is nil!")
+			end
+			setfenv(page, webenv)
+
+			local err = function(...)
+				local s = ""
+
+				for k, v in pairs(args) do
+					s = s .. "v"
+				end
+
+				error(s)
+			end
+
+			xpcall(page, err)
+			--page()
+			self.parsed = true
+			--error(self.widgets.greeting)
+		end,
+
+
+		pageRender = function(self)
+			for k, v in pairs(self.widgets) do
+				if k ~= "verticalBar" then
+					v:refresh()
+				end
+			end
+		end,
+
+
+		getTestPage = function(self)
+			local testPage = [[
+				style({text = {bgcolor = colors.black, forecolor = colors.white, paddingLeft = 2, width = document.size.width - 3}})
+				style({greeting = {forecolor = colors.lime}})
+
+				--text("greeting", "greeting", "Hello, World!")
+				--text("greeting2", "greeting", "Glad to meet you here.")
+				--text("greeting3", "greeting", document.location)
+				--text("greeting4", "greeting", document.client)
+
+				style({mydivs = {bgcolor = colors.lime}})
+
+				div("id", "mydivs")
+					text("textindiv", "greeting", "I'm in dov now!")
+				end_()
+			]]
+
+			return testPage
+		end,
+
+
+		getCanvas = function(self)
+			return self.canvas
+		end,
+	}
+
+
+	_parent.widgets[name] = shdocvw
+	_parent.lastZOrder = _parent.lastZOrder + 1
+	paintBox.zOrder = _parent.lastZOrder
+	return shdocvw
+end

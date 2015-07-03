@@ -1,0 +1,548 @@
+local MAXLENGTH = 255
+
+
+
+function TextToAreaData(text)
+	text = string.gsub(text, "\r", "")
+	local areaData = {}
+	local lines = user.split(text, "\n")
+
+	for i, v in ipairs(lines) do
+		local str = v
+
+		if string.len(str) > MAXLENGTH then
+			str = string.sub(str, 1, MAXLENGTH)
+		elseif string.len(str) < MAXLENGTH then
+			str = str .. "\r" .. string.rep(" ", MAXLENGTH - string.len(str) - 1)
+		end
+
+		areaData[i] = str
+	end
+
+	if #areaData == 0 then
+		areaData = { "\0\r" .. string.rep(" ", MAXLENGTH - 2) }
+	end
+
+	return areaData
+end
+
+
+
+function AreaDataToText(areaData)
+	local text = ""
+
+	for i, v in ipairs(areaData) do
+		local index = string.find(v, "\r")
+		local str = v
+
+		if index ~= nil then
+			str = string.sub(v, 1, index - 1)
+		end
+
+		text = text .. str .. "\n"
+	end
+
+	return text
+end
+
+
+function PaintAreaData(canvas, areaData, scrollX, scrollY)
+	for i, v in ipairs(areaData) do
+		if (i - scrollY > 0) and (i <= scrollY + canvas.size.y) then
+			local str = string.sub(v, scrollX, canvas.size.x)
+			canvas:setCursorPos(1, i - scrollY)
+			canvas:write(str)
+		end
+	end
+
+	return canvas
+end
+
+
+function AreaLineLen(line)
+	return string.find(line, "\r") or 0
+end
+
+
+
+function CreateEffect_HideSystemSymbols(parent)
+	local effect = {
+		parent = parent,
+		selectedText = "",
+		syntaxHighlighter = nil,
+
+
+		getSelectedText = function(self)
+			return string.gsub(string.gsub(self.selectedText, "\0", ""), "\r", "\n")
+		end,
+
+
+		isSelected = function(self, x, y)
+			if (y + self.parent.scroll.top <= #(self.parent.areaData)) and (y + self.parent.scroll.top >= 1) and
+				(x + self.parent.scroll.left - 1 < AreaLineLen(self.parent.areaData[y + self.parent.scroll.top])) then
+				if self.parent.selection.endpos.y == self.parent.selection.startpos.y then
+					if (y == self.parent.selection.startpos.y) and (x > self.parent.selection.startpos.x) and (x < self.parent.selection.endpos.x) then
+						return true
+					end
+				else
+					if (y >= self.parent.selection.startpos.y) and (y <= self.parent.selection.endpos.y) then
+						if ((x > self.parent.selection.startpos.x) and (y == self.parent.selection.startpos.y)) or
+							((x < self.parent.selection.endpos.x) and (y == self.parent.selection.endpos.y)) or
+							((y > self.parent.selection.startpos.y) and (y < self.parent.selection.endpos.y)) then
+							return true
+						end
+					end
+				end
+			end
+
+			return false
+		end,
+
+
+
+		getbgcolor = function(self, x, y, bgcolor, forecolor, char)
+			if self:isSelected(x, y) then
+				return parent.selection.style.bgcolor
+			else
+				if self.syntaxHighlighter ~= nil then
+					return self.syntaxHighlighter:getbgcolor(x, y, bgcolor, forecolor, char)
+				else
+					return bgcolor
+				end
+			end
+		end,
+
+		getforecolor = function(self, x, y, bgcolor, forecolor, char)
+			if self:isSelected(x, y) then
+				return parent.selection.style.forecolor
+			else
+				if self.syntaxHighlighter ~= nil then
+					return self.syntaxHighlighter:getforecolor(x, y, bgcolor, forecolor, char)
+				else
+					return forecolor
+				end
+			end
+		end,
+
+		getchar = function(self, x, y, bgcolor, forecolor, char)
+			if self:isSelected(x, y) then
+				self.selectedText = self.selectedText .. char
+			end
+
+			if char == "\0" then
+				return " "
+			elseif char == "\r" then
+				return " " --^
+			else
+				if self.syntaxHighlighter ~= nil then
+					return self.syntaxHighlighter:getchar(x, y, bgcolor, forecolor, char)
+				else
+					return char
+				end
+			end
+		end,
+	}
+
+	return effect
+end
+
+
+
+
+function Create(_parent, name, widgets)
+	local textArea = {
+		parent = _parent,
+		left = 1,
+		top = 1, 
+		height = 16,
+		width = 24,
+		bgcolor = colors.white,
+		forecolor = colors.black,
+		focused = false,
+		visible = true,
+		canvas = nil,
+		text = "", lastText = "",
+		tab = 0,
+		editable = true,
+		--scrollBars = "both",  --"horisontal", "vertical", "both"
+		scroll = { left = 1, top = 0},
+		buffer = nil,
+		widgets = { },
+		widgetsLib = widgets,
+		focusedWidget = nil,
+		lastZOrder = 0,
+		cursorPos = { x = 0, y = 1, text = 1},
+		--textBuffer = { { {  } } }.
+		linesLength = nil,
+		areaData = {},
+		syntaxHighlighter = nil,
+
+
+		selection = {
+			startpos = { x = 1, y = 1 },
+			endpos = { x = 1, y = 1 },
+
+			style = {
+				bgcolor = colors.blue,
+				forecolor = colors.white,
+			},
+		},
+
+
+
+		getText = function(self)
+			return string.gsub(self.text, "\0", "")
+		end,
+
+
+		setText = function(self, text)
+			text = string.gsub(text, "\n", "\0\n")
+			self.text = text or ""
+			self.buffer = nil
+		end,
+
+
+		getSelectedText = function(self)
+			if self.buffer ~= nil then
+				return self.buffer.effect:getSelectedText()
+			else
+				return ""
+			end
+		end,
+
+
+
+		refresh = function(self, refreshSyntax)
+			self.canvas = user.CreateCanvas(self.width, self.height)
+			self.canvas:fillrect(1, 1, self.width, self.height, self.bgcolor)
+			if self.scroll.left < 2 then self.scroll.left = 1 end
+
+
+
+			if self.widgets.verticalBar == nil then
+				self.widgets.verticalBar = scrollBar.Create(self, "verticalBar")
+				self.widgets.verticalBar.step = 1
+
+				self.widgets.verticalBar.onChange = function(sender)
+					self.scroll.top = self.widgets.verticalBar.value
+					self.buffer = nil
+				end
+			end
+
+			self.widgets.verticalBar.left = self.width
+			self.widgets.verticalBar.top = 0
+			self.widgets.verticalBar.height = self.height - 1
+
+
+
+			if self.widgets.horisontalBar == nil then
+				self.widgets.horisontalBar = scrollBar.Create(self, "horisontalBar")
+				self.widgets.horisontalBar.step = 1
+				self.widgets.horisontalBar.min = 1
+				self.widgets.horisontalBar.value = 2
+				self.widgets.horisontalBar.vertical = false
+
+				self.widgets.horisontalBar.onChange = function(sender)
+					self.scroll.left = self.widgets.horisontalBar.value
+					if self.scroll.left < 2 then self.scroll.left = 1 end
+					self.buffer = nil
+				end
+			end
+
+			self.widgets.horisontalBar.left = 1
+			self.widgets.horisontalBar.top = self.height - 1
+			self.widgets.horisontalBar.height = 1
+			self.widgets.horisontalBar.width = self.width - 1
+
+
+			if refreshSyntax then self.buffer = nil end
+
+			if self.buffer == nil then
+				self.buffer = user.CreateCanvas(--[[self.width - 1]]256, self.height - 1)
+				self.buffer.bgcolor = self.bgcolor
+				self.buffer.forecolor = self.forecolor
+				self.buffer.autoScroll = true
+				self.buffer.effect = CreateEffect_HideSystemSymbols(self)
+				self.buffer.effect.syntaxHighlighter = self.syntaxHighlighter
+				self.buffer:clear()
+
+				self.areaData = TextToAreaData(self.text)
+
+				if self.syntaxHighlighter then
+					self.syntaxHighlighter:setScrolling(self.scroll)
+					if refreshSyntax then self.syntaxHighlighter:parseAreaData(self.areaData, self.forecolor, self.buffer.size.x, self.buffer.size.y) end
+				end
+
+				self.buffer = PaintAreaData(self.buffer, self.areaData, self.scroll.left, self.scroll.top)
+
+
+				self.widgets.horisontalBar.max = 255
+				self.widgets.verticalBar.max = #(self.areaData) - self.height + 1
+				if self.widgets.verticalBar.max < 0 then self.widgets.verticalBar.max = 0 end
+			end
+
+			self.canvas:draw(0, 0, self.buffer)
+
+
+			self.widgets.verticalBar:refresh()
+			self.widgets.horisontalBar:refresh()
+			self.parent:getCanvas():draw(self.left - 1, self.top, self.canvas)
+			self.parent:getCanvas():setCursorPos(self.left + self.width - 1, self.top + self.height)
+			self.parent:getCanvas().bgcolor = self.parent.bgcolor
+			self.parent:getCanvas():write(" ")
+
+			self.parent.parent.os.setCaretPos(self.left + self.cursorPos.x - self.scroll.left + 1, self.top + self.cursorPos.y - self.scroll.top)
+			self.parent.parent.os.setCaretColor(self.forecolor)
+
+
+			if (self.cursorPos.x - self.scroll.left + 1 >= 0) and (self.cursorPos.y - self.scroll.top > 0) and
+				(self.cursorPos.x - self.scroll.left + 1 < self.width - 1) and (self.cursorPos.y - self.scroll.top < self.height)
+				and (self.focused) then
+				self.parent.parent.os.showCaret()
+			else
+				self.parent.parent.os.hideCaret()
+			end
+		end,
+
+
+
+		getCanvas = function(self)
+			return self.canvas
+		end,
+
+
+		mouseDrag = function(self, button, x, y)
+			x = x - self.left + 1
+			y = y - self.top
+
+			self.selection.endpos = {x = x, y = y}
+			if self.canvas.buffer ~= nil then self.canvas.buffer.effect.selectedText = "" end
+		end,
+
+
+		mouseClick = function(self, button, x, y)
+			x = x - self.left
+			y = y - self.top
+
+
+			if button == 2 then
+				local menu = self.widgetsLib.PopupMenu.Create()
+				menu.bgcolor = colors.lightGray
+				menu.tag = self
+
+				table.insert(menu.items, self.widgetsLib.PopupMenu.CreateItem("Copy", 
+					function(sender)
+						menu.tag.parent.parent.os.copyToClipboard(menu.tag:getSelectedText(), "TEXT")
+				end))
+
+				table.insert(menu.items, self.widgetsLib.PopupMenu.CreateItem("Paste", 
+					function(sender)
+						local text = menu.tag.parent.parent.os.pasteFromClipboard("TEXT")
+
+						if text ~= nil then
+							local self = sender.tag
+
+							if self.cursorPos.x > AreaLineLen(self.areaData[self.cursorPos.y]) then self.cursorPos.x = AreaLineLen(self.areaData[self.cursorPos.y]) - 1 end
+							local pre = string.sub(self.areaData[self.cursorPos.y], 1, self.cursorPos.x)
+							local post = string.sub(self.areaData[self.cursorPos.y], self.cursorPos.x + 1, string.len(self.areaData[self.cursorPos.y]) - string.len(pre))
+
+							self.areaData[self.cursorPos.y] = pre .. text .. post
+							self.areaData[self.cursorPos.y] = string.gsub(self.areaData[self.cursorPos.y], "\0", "")
+							self.cursorPos.x = self.cursorPos.x + 1
+
+
+							self.text = AreaDataToText(self.areaData)
+							self.buffer = nil
+						end
+				end))
+
+				--self.widgetsLib.popupMenu(menu, x + self.left + 1, y + self.top + 1)
+			else
+				self.selection.startpos.x = x
+				self.selection.startpos.y = y
+				self.selection.endpos = {x = 1, y = 1}
+				if self.canvas.buffer ~= nil then self.canvas.buffer.effect.selectedText = "" end
+			end
+
+
+			if (x == self.width - 1) or (y == self.height) then
+				if self.widgets.verticalBar.mouseClick ~= nil then
+					self.widgets.verticalBar:mouseClick(button, x, y)
+				end
+
+				if self.widgets.verticalBar.onMouseClick ~= nil then
+					self.widgets.verticalBar:onMouseClick(button, x, y)
+				end
+
+				if self.widgets.horisontalBar.mouseClick ~= nil then
+					self.widgets.horisontalBar:mouseClick(button, x, y)
+				end
+
+				if self.widgets.horisontalBar.onMouseClick ~= nil then
+					self.widgets.horisontalBar:onMouseClick(button, x, y)
+				end
+			else
+				if self.editable then
+					self.cursorPos.x = x + self.scroll.left - 1
+					self.cursorPos.y = y + self.scroll.top
+				end
+			end
+
+			if self.cursorPos.y > #(self.areaData) then self.cursorPos.y = #(self.areaData) end
+			if self.cursorPos.y < 1 then self.cursorPos.y = 0 end
+			if self.cursorPos.x > AreaLineLen(self.areaData[self.cursorPos.y]) - 1 then self.cursorPos.x = AreaLineLen(self.areaData[self.cursorPos.y]) - 1 end
+			if self.cursorPos.x < 0 then self.cursorPos.x = 0 end
+		end,
+
+
+
+		keyPress = function(self, key, char)
+			self.selection.endpos = {x = 1, y = 1}
+
+			if self.editable then
+				if key == keys.right then
+					self.cursorPos.x = self.cursorPos.x + 1
+					self.buffer = nil
+				elseif key == keys.left then
+					self.cursorPos.x = self.cursorPos.x - 1
+					self.buffer = nil
+				elseif key == keys.up then
+					self.cursorPos.y = self.cursorPos.y - 1
+					self.buffer = nil
+				elseif key == keys.down then
+					self.cursorPos.y = self.cursorPos.y + 1
+					self.buffer = nil
+				elseif key == keys.enter then
+
+					if self.cursorPos.x == 0 then
+						local str = self.areaData[self.cursorPos.y]
+						self.areaData[self.cursorPos.y] = "\0\r" .. string.rep(" ", MAXLENGTH - 2)
+
+						table.insert(self.areaData, self.cursorPos.y + 1, str)
+						self.cursorPos.y = self.cursorPos.y + 1
+						self.cursorPos.x = 0
+					else
+						local str = string.sub(self.areaData[self.cursorPos.y], self.cursorPos.x + 1, AreaLineLen(self.areaData[self.cursorPos.y]))
+						str = string.gsub(str, "\r", "")
+
+						if string.len(str) > MAXLENGTH then str = string.sub(str, 1, MAXLENGTH) end
+						if string.len(str) < MAXLENGTH then str = str .. "\r" .. string.rep(" ", MAXLENGTH - string.len(str) - 1) end
+
+						self.areaData[self.cursorPos.y] = string.sub(self.areaData[self.cursorPos.y], 1, self.cursorPos.x)
+						local parts = user.split(self.areaData[self.cursorPos.y], "\r")
+						self.areaData[self.cursorPos.y] = parts[1] .. "\r" .. string.rep(" ", MAXLENGTH - string.len(parts[1]) - 1)
+
+						if user.stringstarts(str, "\r") then
+							str = "\0" .. string.sub(str, 1, string.len(str) - 1)
+						end
+
+						table.insert(self.areaData, self.cursorPos.y + 1, str)
+						self.cursorPos.y = self.cursorPos.y + 1
+						self.cursorPos.x = 0
+					end
+
+					self.text = AreaDataToText(self.areaData)
+					self.buffer = nil
+
+				elseif key == keys.backspace then
+					local proc = function() 
+						if (self.cursorPos.x >= 1) then
+							if self.cursorPos.x > AreaLineLen(self.areaData[self.cursorPos.y]) then self.cursorPos.x = AreaLineLen(self.areaData[self.cursorPos.y]) - 1 end
+							local pre = string.sub(self.areaData[self.cursorPos.y], 1, self.cursorPos.x - 1)
+							local post = string.sub(self.areaData[self.cursorPos.y], self.cursorPos.x + 1, string.len(self.areaData[self.cursorPos.y]) - string.len(pre))
+
+							self.areaData[self.cursorPos.y] = pre .. post
+							self.cursorPos.x = self.cursorPos.x - 1
+						else
+							if #(self.areaData) > 1 then
+								if (self.cursorPos.x >= 1) and (self.cursorPos.y < #(self.areaData)) then
+									local pre = string.sub(self.areaData[self.cursorPos.y - 1], 1, AreaLineLen(self.areaData[self.cursorPos.y - 1]) - 1)
+									local post = string.sub(self.areaData[self.cursorPos.y], 1, AreaLineLen(self.areaData[self.cursorPos.y]) - 1)
+									pre = string.gsub(pre, "\0", "")
+
+									self.areaData[self.cursorPos.y - 1] = pre .. post .. "\r" .. string.rep(" ", MAXLENGTH - 1 - string.len(pre) - string.len(post))
+									table.remove(self.areaData, self.cursorPos.y)
+									self.cursorPos.y = self.cursorPos.y - 1
+									self.cursorPos.x = MAXLENGTH - AreaLineLen(self.areaData[self.cursorPos.y]) - 1
+								elseif (self.cursorPos.y == #(self.areaData)) and (self.cursorPos.x <= 1) then
+									if AreaLineLen(self.areaData[self.cursorPos.y]) < 1 then
+										table.remove(self.areaData, self.cursorPos.y)
+										self.cursorPos.y = self.cursorPos.y - 1
+									else
+										local pre = string.sub(self.areaData[self.cursorPos.y - 1], 1, AreaLineLen(self.areaData[self.cursorPos.y - 1]) - 1)
+										local post = string.sub(self.areaData[self.cursorPos.y], 1, AreaLineLen(self.areaData[self.cursorPos.y]) - 1)
+										pre = string.gsub(pre, "\0", "")
+
+										self.areaData[self.cursorPos.y - 1] = pre .. post .. "\r" .. string.rep(" ", MAXLENGTH - 1 - string.len(pre) - string.len(post))
+										table.remove(self.areaData, self.cursorPos.y)
+										self.cursorPos.y = self.cursorPos.y - 1
+										self.cursorPos.x = MAXLENGTH - AreaLineLen(self.areaData[self.cursorPos.y]) - 1
+									end
+								end
+							end
+						end
+					end
+
+					pcall(proc)
+
+					self.text = AreaDataToText(self.areaData)
+					self.buffer = nil
+
+				elseif key == keys.delete then
+
+					if self.cursorPos.x > AreaLineLen(self.areaData[self.cursorPos.y]) then self.cursorPos.x = AreaLineLen(self.areaData[self.cursorPos.y]) - 1 end
+					local pre = string.sub(self.areaData[self.cursorPos.y], 1, self.cursorPos.x)
+					local post = string.sub(self.areaData[self.cursorPos.y], self.cursorPos.x + 2, string.len(self.areaData[self.cursorPos.y]) - string.len(pre))
+
+					self.areaData[self.cursorPos.y] = pre .. post
+
+					self.text = AreaDataToText(self.areaData)
+					self.buffer = nil
+
+				elseif char ~= "" then
+
+					if self.cursorPos.x > AreaLineLen(self.areaData[self.cursorPos.y]) then self.cursorPos.x = AreaLineLen(self.areaData[self.cursorPos.y]) - 1 end
+					local pre = string.sub(self.areaData[self.cursorPos.y], 1, self.cursorPos.x)
+					local post = string.sub(self.areaData[self.cursorPos.y], self.cursorPos.x + 1, string.len(self.areaData[self.cursorPos.y]) - string.len(pre))
+
+					self.areaData[self.cursorPos.y] = pre .. char .. post
+					self.areaData[self.cursorPos.y] = string.gsub(self.areaData[self.cursorPos.y], "\0", "")
+					self.cursorPos.x = self.cursorPos.x + 1
+
+
+					self.text = AreaDataToText(self.areaData)
+					self.buffer = nil
+				end
+
+
+				if self.cursorPos.y > #(self.areaData) then self.cursorPos.y = #(self.areaData) end
+				if self.cursorPos.y < 1 then self.cursorPos.y = 0 end
+				if self.cursorPos.x > AreaLineLen(self.areaData[self.cursorPos.y]) then self.cursorPos.x = AreaLineLen(self.areaData[self.cursorPos.y]) - 1 end
+				if self.cursorPos.x < 0 then self.cursorPos.x = 0 end
+
+				--if AreaLineLen(self.areaData[self.cursorPos.y]) <= 0 then
+				--	self.cursorPos.y = self.cursorPos.y - 1
+				--end
+
+				self.scroll.left = self.cursorPos.x - self.width + 2
+				if self.scroll.left < 0 then self.scroll.left = 0 end
+				self.widgets.horisontalBar.value = self.scroll.left
+
+				self.scroll.top = self.cursorPos.y - self.height + 1
+				if self.scroll.top < 0 then self.scroll.top = 0 end
+				self.widgets.verticalBar.value = self.scroll.top
+
+
+
+				self:refresh()
+			end
+		end,
+
+
+	}
+
+	_parent.widgets[name] = textArea
+	_parent.lastZOrder = _parent.lastZOrder + 1
+	textArea.zOrder = _parent.lastZOrder
+	return textArea
+end

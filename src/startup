@@ -1,0 +1,9 @@
+if _EMULATED then
+	shell.run("cd \"" .. os.getSystemPath() .. "/userdata/\"")
+	if _WHAT_TO_RUN ~= nil then
+		shell.run(_WHAT_TO_RUN)
+		os.shutdown()
+	end
+else
+	shell.run("winldr")
+end

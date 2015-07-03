@@ -1,0 +1,113 @@
+local args = {...}
+local path = args[2]
+local filename = args[3]
+local self_extract = args[4]
+
+if not xwin then
+	path = args[1]
+	filename = args[2]
+	self_extract = args[3]
+end
+
+print(path)
+print(filename)
+print(self_extract)
+os.sleep(1000)
+
+function flist(base, path)
+	local l = fs.list(base .. "/" .. path)
+	local ls = {}
+
+	for k, v in pairs(l) do
+		pcall(function()
+			if fs.isDir(base .. "/" .. path .. "/" .. v) then
+				local files = flist(base, path .. "/" .. v)
+				for kq, vq in pairs(files) do
+					table.insert(ls, vq)
+				end
+			else
+				table.insert(ls, path .. "/" .. v)
+			end
+		end)
+	end
+
+	return ls
+end
+
+
+local data = {}
+table.insert(data, "local names = {}\nlocal values = {}\n")
+local files = flist("/" .. path, "")
+for k, v in pairs(files) do
+	pcall(function()
+		if not fs.isDir(path .. "/" .. v) then
+			local file = fs.open(path .. "/" .. v, "r")
+			local s = file.readAll()
+			file.close()
+
+			table.insert(data, "table.insert(names, \"" .. v .. "\")\n")
+			s = string.gsub(s, "%[%[", "\\%[\\%[")
+			s = string.gsub(s, "%]%]", "\\%]\\%]")
+			table.insert(data, "table.insert(values, [[" .. s .. "]])\n")
+		end
+	end)
+end
+
+
+if self_extract == "-se" then
+	local se_code = [[
+local args = {...}
+local path = args[2] or "/temp"
+if not xwin then
+	path = args[1] or "/temp"
+end
+
+function _utStrSplit(self, sep)
+	local sep, fields = sep or ":", {}
+	local pattern = string.format("([^%s]+)", sep)
+	self:gsub(pattern, function(c) fields[#fields+1] = c end)
+	return fields
+end
+
+print("Unpacking LRC...")
+
+fs.makeDir(path)
+for i = 1, #names do
+	local l = _utStrSplit(names[i], "/")
+	local p = ""
+	if #l > 1 then
+		pcall(function()
+			for i = 1, #p - 2 do
+				p = p .. "/" .. l[i]
+			end
+		end)
+	end
+
+	pcall(function()
+		print("Unpacking " .. names[i] .. "...")
+		fs.makeDir(path .. "/" .. p)
+		local file = fs.open(path .. "/" .. names[i], "w")
+		values[i] = string.gsub(values[i], "\\%[\\%[", "%[%[")
+		values[i] = string.gsub(values[i], "\\%]\\%]", "%]%]")
+		file.write(values[i])
+		file.close()
+	end)
+end
+print("Done!")
+return names, values]]
+	table.insert(data, se_code)
+else
+	table.insert(data, "return names, values")
+end
+
+
+
+filename = "/" .. filename
+local f = fs.open(filename, "w")
+
+for i, v in ipairs(data) do
+	f.write(v)
+end
+
+f.close()
+print("Success!")

@@ -1,0 +1,87 @@
+
+
+function Create(_parent, name)
+	local button = {
+		parent = _parent,
+		left = 1,
+		top = 1, 
+		height = 1,
+		width = 10,
+		caption = name,
+		focused = false,
+		visible = true,
+		bgcolor = colors.gray,
+		forecolor = colors.white,
+		forecolor2 = colors.red,
+		align = "center",
+		lastBgColor = colors.gray,
+
+
+		refresh = function(self)
+			local canvas = self.parent:getCanvas()
+			local x = self.left
+			local y = self.top
+			local textY = 0
+			local str = string.sub(self.caption, 2, string.len(self.caption))
+			local first = string.sub(self.caption, 1, 1)
+
+			if self.parent.style ~= "none" then
+				y = y + 1
+			end
+
+			textY = y + math.floor(self.height / 2)
+
+			canvas:fillrect(self.left, y, self.width - 1, self.height - 1, self.bgcolor)
+			
+
+			if string.len(str) + 2 > self.width then
+				str = string.sub(str, 1, self.width - 3) .. ".."
+			end
+
+
+
+			x = self.left + math.floor(self.width / 2) - math.ceil((string.len(str) +1) / 2)
+			--x = self.left + math.floor(self.width / 2) - math.floor(string.len(str) / 2)
+
+
+			--x = self.left
+
+			--if string.len(str) > self.width then
+			--	str = string.sub(str, 1, self.width - 2) .. ".."
+			--end
+
+			--[[if self.align == "right" then
+				x = self.left + self.width - string.len(str) + 1
+			end
+
+			if self.align == "center" then
+				x = self.left + math.floor(self.width / 2) - math.floor((string.len(str) + 1) / 2)
+			end]]
+
+
+
+			if string.len(str) > self.width then str = string.sub(str, 0, self.width - 1) end
+			if x < self.left then x = self.left end
+
+			canvas:setCursorPos(x, textY)
+			canvas.bgcolor = self.bgcolor
+			canvas.forecolor = self.forecolor2
+			canvas:write(first)
+			canvas.forecolor = self.forecolor
+			canvas:write(str)
+		end,
+
+
+		mouseClick = function(self, button, x, y)
+			--self.lastBgColor = self.bgcolor
+			--self.bgcolor = colors.blue
+			--self:refresh()
+			--self.bgcolor = lastBgColor
+		end,
+	}
+
+	_parent.widgets[name] = button
+	_parent.lastZOrder = _parent.lastZOrder + 1
+	button.zOrder = _parent.lastZOrder
+	return button
+end

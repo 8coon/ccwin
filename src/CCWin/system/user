@@ -1,0 +1,592 @@
+local lastCursorBlink = false
+local oldSetCursorBlink = term.setCursorBlink
+
+function split(self, sep)
+    local sep, fields = sep or ":", {}
+    local pattern = string.format("([^%s]+)", sep)
+    self:gsub(pattern, function(c) fields[#fields+1] = c end)
+    return fields
+end
+
+function stringstarts(String,Start)
+   return string.sub(String,1,string.len(Start))==Start
+end
+
+function stringends(String,End)
+   return End=='' or string.sub(String,-string.len(End))==End
+end
+
+function round(num, idp)
+  local mult = 10^(idp or 0)
+  return math.floor(num * mult + 0.5) / mult
+end
+
+
+
+term.setCursorBlink = function(bool)
+	lastCursorBlink = bool
+	oldSetCursorBlink(bool)
+end
+
+
+
+function CreateCanvas(sizeX, sizeY)
+	local videoData = { }
+
+	for y = 1, sizeY do
+		videoData[y] = { }
+		for x = 1, sizeX do
+			videoData[y][x] = { bgcolor = colors.white, forecolor = colors.black, char = " " }
+		end
+	end
+
+
+	local canvas = {
+		size = { x = sizeX, y = sizeY },
+		cursorPos = { x = 1, y = 1 },
+		data = videoData,
+		bgcolor = colors.white,
+		forecolor = colors.black,
+		autoScroll = false,
+		showCursor = true,
+		cursorBlink = false,
+		effect = nil,
+
+
+		render = function(self, left, top, changeBlinking)
+			local cx, cy = term.getCursorPos()
+			local oldBlink = lastCursorBlink
+
+			--if changeBlinking == true then term.setCursorBlink(self.cursorBlink) end
+
+			for y = 1, self.size.y do
+				if self.data[y] ~= nil then
+					for x = 1, self.size.x do
+						if self.data[y][x] ~= nil then
+							term.setCursorPos(x + left, y + top)
+
+							if type(self.data[y][x].bgcolor) == "number" then
+								if self.effect ~= nil then
+									term.setBackgroundColor(self.effect:getbgcolor(x, y, self.data[y][x].bgcolor, self.data[y][x].forecolor, self.data[y][x].char))
+								else
+									if self.data[y][x].bgcolor > 0 then
+										term.setBackgroundColor(self.data[y][x].bgcolor)
+									end
+								end
+							end
+
+							if self.effect ~= nil then
+								term.setTextColor(self.effect:getforecolor(x, y, self.data[y][x].bgcolor, self.data[y][x].forecolor, self.data[y][x].char))
+								term.write(self.effect:getchar(x, y, self.data[y][x].bgcolor, self.data[y][x].forecolor, self.data[y][x].char))
+							else
+								term.setTextColor(self.data[y][x].forecolor)
+
+								if self.data[y][x].bgcolor ~= 0 then
+									term.write(self.data[y][x].char)
+								else
+									local x, y = term.getCursorPos()
+									term.setCursorPos(x + 1, y)
+								end
+							end
+						end
+					end
+				end
+			end
+
+			--if changeBlinking == true then term.setCursorBlink(oldBlink) end
+			--term.setCursorPos(cx, cy)
+		end,
+
+
+		clear = function(self)
+			for y = 1, self.size.y do
+				for x = 1, self.size.x do
+					self.data[y][x] = { bgcolor = self.bgcolor, forecolor = self.forecolor, char = " " }
+				end
+			end
+		end,
+
+
+		dublicate = function(self)
+			local function copyTable(t)
+				local n = {}
+				for k, v in pairs(t) do
+					if not type(v) == "table" then
+						n[k] = v
+					else
+						n[k] = copyTable(v)
+					end
+				end
+				return n
+			end
+
+			return copyTable(self)
+		end,
+
+
+		scale = function(self, sizeX, sizeY)
+			if (sizeX == self.size.x) and (sizeY == self.size.y) then
+				return self
+			end
+
+			local ratioX = self.size.x / sizeX
+			local ratioY = self.size.y / sizeY
+			local new = CreateCanvas(sizeX, sizeY)
+			local copiedX = 0
+			local copiedY = 0
+			local cx = 1
+			local cy = 1
+
+			for y = 1, sizeY do
+				copiedY = copiedY + ratioY
+				cy = cy + math.floor(copiedY)
+				copiedY = copiedY - math.floor(copiedY)
+				copiedX = 0
+				cx = 1
+				for x = 1, sizeX do
+					copiedX = copiedX + ratioX
+					cx = cx + math.floor(copiedX)
+					copiedX = copiedX - math.floor(copiedX)
+					new.data[y][x] = (self.data[cy] or {})[cx] or
+						{ bgcolor = colors.white, forecolor = colors.black, char = " " }
+				end
+			end
+
+			return new
+		end,
+
+
+		--scaleToFit = function(self, sizeX, sizeY)
+		--	if 
+		--end,
+
+
+		write = function(self, str)
+			for c in string.gmatch(str, ".") do
+				if (self.cursorPos.y >= 1) and (self.cursorPos.y <= self.size.y) and
+					(self.cursorPos.x >= 1) and (self.cursorPos.x <= self.size.x) then
+
+					self.data[self.cursorPos.y][self.cursorPos.x].char = c
+					self.data[self.cursorPos.y][self.cursorPos.x].bgcolor = self.bgcolor
+					self.data[self.cursorPos.y][self.cursorPos.x].forecolor = self.forecolor
+					self.cursorPos.x = self.cursorPos.x + 1
+
+					if self.cursorPos.x > self.size.x then
+						self.cursorPos.x = 1
+						self.cursorPos.y = self.cursorPos.y + 1
+
+						if (self.autoScroll) and (self.cursorPos.y >= self.size.y) then
+							self.size.y = self.size.y + 1
+
+							self.data[self.size.y] = {}
+							for x = 1, self.size.x do
+								self.data[self.size.y][x] = { bgcolor = self.bgcolor, forecolor = self.forecolor, char = " " }
+							end
+						end
+					end
+				end
+			end
+		end,
+
+
+		fillrect = function(self, left, top, width, height, bgcolor)
+			for y = top, top + height do
+				for x = left, left + width do
+					if (y >= 1) and (y <= self.size.y) and
+						(x >= 1) and (x <= self.size.x) then
+						self.data[y][x].bgcolor = bgcolor
+						self.data[y][x].char = " "
+					end
+				end
+			end
+		end,
+
+
+		print = function(self, str)
+			local function newLine()
+				self.cursorPos.x = 1
+				self.cursorPos.y = self.cursorPos.y + 1
+
+				if (self.autoScroll) and (self.cursorPos.y > self.size.y) then
+					self.size.y = self.size.y + 1
+					--print(self.size.y)
+					self.data[self.size.y] = {}
+					for x = 1, self.size.x do
+						self.data[self.size.y][x] = { bgcolor = self.bgcolor, forecolor = self.forecolor, char = " " }
+					end
+				end
+			end
+
+
+			local function printBlock(block)
+				local words = split(block, " ")
+
+				for i, v in ipairs(words) do
+					if i < #words then
+						if self.cursorPos.x + string.len(v) + 1 > self.size.x then
+							newLine()
+						end
+						self.write(self, v .. " ")
+					else
+						if self.cursorPos.x + string.len(v) > self.size.x then
+							newLine()
+						end
+						self.write(self, v)
+					end
+				end
+			end
+
+			str = str .. "\n"
+			blocks = split(str, "\n")
+
+			for i, v in ipairs(blocks) do
+				printBlock(v)
+				newLine()
+			end
+		end,
+
+
+		draw = function(self, left, top, graphic, arg1, transparent, transColor)
+			if transparent then
+				transColor = transColor or colors.white
+			else
+				transColor = nil
+			end
+
+			for y = 1, graphic.size.y do
+				for x = 1, graphic.size.x do
+					if (y + top >= 1) and (y + top <= self.size.y) and
+					   (x + left >= 1) and (x + left <= self.size.x) and
+					   (y >= 1) and (y <= graphic.size.y) and
+					   (x >= 1) and (x <= graphic.size.x) then
+						if (transparent and graphic.data[y][x].bgcolor ~= transColor) or not transparent then
+							if graphic.effect ~= nil then
+								self.data[y + top][x + left].char = 
+									graphic.effect:getchar(x, y, graphic.data[y][x].bgcolor, graphic.data[y][x].forecolor, graphic.data[y][x].char)
+								self.data[y + top][x + left].bgcolor = 
+									graphic.effect:getbgcolor(x, y, graphic.data[y][x].bgcolor, graphic.data[y][x].forecolor, graphic.data[y][x].char)
+								self.data[y + top][x + left].forecolor = 
+									graphic.effect:getforecolor(x, y, graphic.data[y][x].bgcolor, graphic.data[y][x].forecolor, graphic.data[y][x].char)
+							else
+								--if graphic.data[y][x].char ~= "\r" then self.data[y + top][x + left].char = graphic.data[y][x].char else
+								--	self.data[y + top][x + left].char = "^" end
+
+								self.data[y + top][x + left].char = graphic.data[y][x].char
+								self.data[y + top][x + left].bgcolor = graphic.data[y][x].bgcolor
+								self.data[y + top][x + left].forecolor = graphic.data[y][x].forecolor
+							end
+						end
+					end
+				end
+			end
+
+			term.setCursorPos(graphic.cursorPos.x, graphic.cursorPos.y)
+			term.setCursorBlink(graphic.cursorBlink)
+		end,
+
+
+		point = function(self, x, y, char)
+			if self.data[y] ~= nil then
+				if self.data[y][x] ~= nil then
+					self.data[y][x].bgcolor = self.bgcolor
+					self.data[y][x].forecolor = self.forecolor
+					self.data[y][x].char = char
+				end
+			end
+		end,
+
+
+		scroll = function(self, n)
+			self:draw(0, -n, self)
+			self:fillrect(1, self.size.y - n, self.size.x, n, self.bgcolor)
+		end,
+
+
+		setCursorPos = function(self, x, y)
+			self.cursorPos.x = x
+			self.cursorPos.y = y
+		end,
+
+		getCursorPos = function(self)
+			return self.cursorPos.x, self.cursorPos.y
+		end,
+
+		getSize = function(self)
+			return self.size.x, self.size.y
+		end,
+	}
+
+	return canvas
+end
+
+
+function getTextColor(color)
+	local COLORS = {}
+
+	COLORS[0] = "t" -- transparent
+	COLORS[1] = "0"
+	COLORS[2] = "1"
+	COLORS[4] = "2"
+	COLORS[8] = "3"
+	COLORS[16] = "4"
+	COLORS[32] = "5"
+	COLORS[64] = "6"
+	COLORS[128] = "7"
+	COLORS[256] = "8"
+	COLORS[512] = "9"
+	COLORS[1024] = "a"
+	COLORS[2048] = "b"
+	COLORS[4096] = "c"
+	COLORS[8192] = "d"
+	COLORS[16384] = "e"
+	COLORS[32768] = "f"
+
+	return COLORS[color]
+end
+
+
+function getColorFromStr(str)
+	local COLORS = {}
+
+	COLORS["t"] = 0 -- transparent
+	COLORS["0"] = 1
+	COLORS["1"] = 2
+	COLORS["2"] = 4
+	COLORS["3"] = 8
+	COLORS["4"] = 16
+	COLORS["5"] = 32
+	COLORS["6"] = 64
+	COLORS["7"] = 128
+	COLORS["8"] = 256
+	COLORS["9"] = 512
+	COLORS["a"] = 1024
+	COLORS["b"] = 2048
+	COLORS["c"] = 4096
+	COLORS["d"] = 8192
+	COLORS["e"] = 16384
+	COLORS["f"] = 32768
+
+	return COLORS[str]
+end
+
+
+function pixelToString(pixel)
+	local bgcolor = getTextColor(pixel.bgcolor)
+	local forecolor = getTextColor(pixel.forecolor)
+	local char = string.sub(pixel.char, 1, 2) or " "
+
+	return bgcolor .. forecolor .. char
+end
+
+
+
+
+
+function saveCanvas(canvas, fileName)
+	fileName = string.gsub(fileName, "home:/", "")
+
+	if canvas ~= nil then
+		local data = "pic|" .. canvas.size.y .. "|" .. canvas.size.x .. "|"
+
+		for y = 1, canvas.size.y do
+			for x = 1, canvas.size.x do
+				data = data .. pixelToString(canvas.data[y][x])
+			end
+		end
+
+		local file = fs.open(fileName, "w")
+
+		if file ~= nil then
+			file.write(data)
+			file.close()
+		end
+	end
+end
+
+
+function loadCanvas(fileName)
+	fileName = string.gsub(fileName, "home:/", "")
+	local canvas = nil
+
+	if (fs.exists(fileName)) and (fs.isDir(fileName) == false) then
+		local file = fs.open(fileName, "r")
+
+		if file ~= nil then
+			local data = file.readAll()
+			file.close()
+
+			local sections = split(data, "|")
+
+			if sections[1] == "pic" then
+				local sizeY = tonumber(sections[2])
+				local sizeX = tonumber(sections[3])
+				local datasec = sections[4]
+
+				canvas = CreateCanvas(sizeX, sizeY)
+
+				for y = 1, sizeY do
+					for x = 1, sizeX do
+						local index = (((y - 1) * sizeX + (x - 1)) * 3) + 1
+						local bgcolor = getColorFromStr(string.sub(datasec, index, index))
+						local forecolor = getColorFromStr(string.sub(datasec, index + 1, index + 1))
+						local char = string.sub(datasec, index + 2, index + 2)
+
+						--error(index .. ":" .. string.sub(datasec, index, index) .. "!")
+
+						canvas.data[y][x].bgcolor = bgcolor
+						canvas.data[y][x].forecolor = forecolor
+						canvas.data[y][x].char = char
+					end
+				end
+
+				return canvas
+			end
+		end
+	end
+end
+
+
+
+
+
+
+function contrast_color(color)
+	if color == colors.black then return colors.white end
+	if color == colors.orange then return colors.black end
+	if color == colors.magenta then return colors.black end
+	if color == colors.lightBlue then return colors.black end
+	if color == colors.yellow then return colors.black end
+	if color == colors.lime then return colors.white end
+	if color == colors.pink then return colors.white end
+	if color == colors.gray then return colors.white end
+	if color == colors.lightGray then return colors.black end
+	if color == colors.cyan then return colors.white end
+	if color == colors.purple then return colors.white end
+	if color == colors.blue then return colors.white end
+	if color == colors.brown then return colors.white end
+	if color == colors.green then return colors.white end
+	if color == colors.red then return colors.white end
+	if color == colors.white then return colors.black end
+	return colors.white
+end
+
+
+
+function CreateEffect_Shadow()
+	local effect = {
+		getbgcolor = function(self, x, y, bgcolor, forecolor, char)
+			if bgcolor == colors.black then return colors.gray end
+			if bgcolor == colors.orange then return colors.lightGray end
+			if bgcolor == colors.magenta then return colors.lightGray end
+			if bgcolor == colors.lightBlue then return colors.lightGray end
+			if bgcolor == colors.yellow then return colors.lightGray end
+			if bgcolor == colors.lime then return colors.lightGray end
+			if bgcolor == colors.pink then return colors.lightGray end
+			if bgcolor == colors.gray then return colors.gray end
+			if bgcolor == colors.lightGray then return colors.gray end
+			if bgcolor == colors.cyan then return colors.gray end
+			if bgcolor == colors.purple then return colors.gray end
+			if bgcolor == colors.blue then return colors.gray end
+			if bgcolor == colors.brown then return colors.gray end
+			if bgcolor == colors.green then return colors.gray end
+			if bgcolor == colors.red then return colors.lightGray end
+			if bgcolor == colors.white then return colors.lightGray end
+			return colors.gray
+		end,
+
+		getforecolor = function(self, x, y, bgcolor, forecolor, char)
+			if forecolor == colors.black then return colors.gray end
+			if forecolor == colors.orange then return colors.lightGray end
+			if forecolor == colors.magenta then return colors.lightGray end
+			if forecolor == colors.lightBlue then return colors.lightGray end
+			if forecolor == colors.yellow then return colors.lightGray end
+			if forecolor == colors.lime then return colors.lightGray end
+			if forecolor == colors.pink then return colors.lightGray end
+			if forecolor == colors.gray then return colors.gray end
+			if forecolor == colors.lightGray then return colors.gray end
+			if forecolor == colors.cyan then return colors.gray end
+			if forecolor == colors.purple then return colors.gray end
+			if forecolor == colors.blue then return colors.gray end
+			if forecolor == colors.brown then return colors.gray end
+			if forecolor == colors.green then return colors.gray end
+			if forecolor == colors.red then return colors.lightGray end
+			if forecolor == colors.white then return colors.lightGray end
+			return colors.gray
+		end,
+
+		getchar = function(self, x, y, bgcolor, forecolor, char)
+			return char
+		end,
+	}
+
+
+	return effect
+end
+
+
+
+function CreateEffect_Acid()
+	local function RANDOMCOLOR(COLOR_BASE)
+		local COLORS = { 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768 }
+		math.randomseed(COLOR_BASE * os.time())
+
+		if COLORS[math.random(1, 16)] ~= nil then
+			return COLORS[math.random(1, 16)]
+		else
+			return colors.white
+		end
+	end
+
+
+	local effect = {
+		getbgcolor = function(self, x, y, bgcolor, forecolor, char)
+			return RANDOMCOLOR(bgcolor / 2)
+		end,
+
+		getforecolor = function(self, x, y, bgcolor, forecolor, char)
+			return RANDOMCOLOR(forecolor / 2)
+		end,
+
+		getchar = function(self, x, y, bgcolor, forecolor, char)
+			return char
+		end,
+	}
+
+	return effect
+end
+
+
+function CreateEffect_ListViewSelect()
+	local effect = {
+		getbgcolor = function(self, x, y, bgcolor, forecolor, char)
+			if bgcolor == colors.black then return colors.blue end
+			if bgcolor == colors.orange then return colors.blue end
+			if bgcolor == colors.magenta then return colors.lightBlue end
+			if bgcolor == colors.lightBlue then return colors.blue end
+			if bgcolor == colors.yellow then return colors.lightBlue end
+			if bgcolor == colors.lime then return colors.lightBlue end
+			if bgcolor == colors.pink then return colors.lightBlue end
+			if bgcolor == colors.blue then return colors.blue end
+			if bgcolor == colors.lightGray then return colors.lightBlue end
+			if bgcolor == colors.cyan then return colors.blue end
+			if bgcolor == colors.purple then return colors.blue end
+			if bgcolor == colors.blue then return colors.blue end
+			if bgcolor == colors.brown then return colors.blue end
+			if bgcolor == colors.green then return colors.blue end
+			if bgcolor == colors.red then return colors.lightBlue end
+			if bgcolor == colors.white then return colors.lightBlue end
+			return colors.blue
+		end,
+
+		getforecolor = function(self, x, y, bgcolor, forecolor, char)
+			if self:getbgcolor(x, y, bgcolor, forecolor, char) == colors.blue then return colors.lightBlue else return colors.blue end
+		end,
+
+		getchar = function(self, x, y, bgcolor, forecolor, char)
+			return char
+		end,
+	}
+
+
+	return effect
+end

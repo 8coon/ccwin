@@ -1,0 +1,227 @@
+
+function Create(_parent, name)
+	local dialog = {
+		parent = _parent,
+		left = 0,
+		top = 0, 
+		height = 0,
+		width = 0,
+		focused = false,
+		visible = true,
+		dialogForm = nil,
+		title = "Open File...",
+		initialDir = "home:/",
+		lastActiveForm = nil,
+		fileName = nil,
+		onExecute = nil,
+		dirOnly = false,
+
+
+		refresh = function(self)
+			if self.dialogForm ~= nil then
+				self.dialogForm.parent = self.parent.parent
+				self.dialogForm:refresh()
+			end
+		end,
+
+
+		execute = function(self)
+			self.lastActiveForm = self.parent.parent.activeForm
+
+			self.dialogForm = form.Create("CommonDialogForm")
+			self.dialogForm.parent = self.parent.parent
+			self.parent.parent:addForm(self.dialogForm, "CommonDialogForm")
+			self.dialogForm:show()
+
+			self.dialogForm.name = self.title
+			self.dialogForm.controlBox = false
+			self.dialogForm.bgcolor = colors.white
+
+
+			local listView = fileListView.Create(self.dialogForm, "listView")
+			listView.bgcolor = colors.white
+			listView.top = 1 + 3
+			listView.left = 1
+			listView.width = self.parent.parent.canvas.size.x
+			listView.height = self.parent.parent.canvas.size.y - 1 - 3   - 3
+			listView.lastTime = 0
+
+			listView.path = self.initialDir
+			listView.dirOnly = self.dirOnly
+			listView:refreshList()
+
+
+			self.parent.parent.os.sendMessage(self.parent.parent.hwnd, { msg = "refresh" })
+
+			listView.onClick = function(sender)
+				local time = os.time()
+
+				if #sender.selectedList > 0 then
+					sender.parent.widgets["Panel2"].widgets["FileName"].text = sender.list[sender.selectedList[1]].name
+					sender.parent.widgets["Panel2"].widgets["FileName"]:refresh()
+				end
+
+				if (time - sender.lastTime) * 10 < 0.1 then
+					local selected = listView.selectedList
+					if #selected > 0 then
+						listView:navigate(listView.list[selected[1]].name, true, self.parent.parent.os)
+						listView.selectedList = {}
+						sender.parent.widgets["Panel2"].widgets["FileName"].text = ""
+					end
+				end
+
+				sender.lastTime = time
+			end
+
+			listView.onNavigate = function(sender, path)
+				sender.parent.widgets["Panel"].widgets["AddressBar"].text = path
+				sender.selectedList = {}
+			end
+
+
+
+			local panel1 = panel.Create(self.dialogForm, "Panel")
+			panel1.top = 1
+			panel1.left = 0
+			panel1.width = self.parent.parent.canvas.size.x
+			panel1.height = 3
+			panel1.bgcolor = colors.lightGray
+
+
+			local panel2 = panel.Create(self.dialogForm, "Panel2")
+			panel2.top = 1 + panel1.height + listView.height
+			panel2.left = 0
+			panel2.width = self.parent.parent.canvas.size.x
+			panel2.height = 3
+			panel2.bgcolor = colors.lightGray
+
+
+			local fnLabel = label.Create(panel2, "FnLabel")
+			fnLabel.left = 2
+			fnLabel.top = 2
+			fnLabel.height = 1
+			fnLabel.align = "left"
+			fnLabel.caption = "File Name:"
+			fnLabel.width = string.len(fnLabel.caption) + 1
+
+			local fileName = edit.Create(panel2, "FileName")
+			fileName.left = fnLabel.left + fnLabel.width
+			fileName.top = 2
+			fileName.height = 1
+			fileName.width = self.parent.parent.canvas.size.x - fileName.left - 16 - 2
+			fileName.text = ""
+
+			--fileName.onRefresh = function(sender)
+				--sender.text = string.gsub(sender.text, "%/%/", "%/")
+				--if #listView.selectedList > 0 then
+					--sender.text = listView.list[listView.selectedList[1]].name
+				--else
+					--sender.text = ""
+				--end
+			--end
+
+
+			local openButton = button.Create(panel2, "OpenButton")
+			openButton.left = fileName.left + fileName.width + 1
+			openButton.top = 2
+			openButton.height = 1
+			openButton.width = 8
+			--openButton.forecolor2 = colors.white
+			openButton.align = "center"
+			openButton.caption = " Open"
+
+			openButton.onClick = function(sender)
+				local fn = sender.parent.parent.widgets["Panel"].widgets["AddressBar"].text .. "/" .. fileName.text
+				fn = string.gsub(fn, "//", "/")
+				fn = string.gsub(fn, "home:/", "", 1)
+
+				if (fs.exists(fn) and (not fs.isDir(fn))) or (fs.exists(fn) and self.dirOnly) then
+					self.fileName = "home:/" .. fn
+					self.dialogForm = nil
+					self.lastActiveForm.parent.forms["CommonDialogForm"] = nil
+					self.lastActiveForm:show()
+					--self.lastActiveForm.parent.activeForm = self.lastActiveForm
+					self.parent.parent.os.sendMessage(self.parent.parent.hwnd, { msg = "refresh" })
+
+					if self.onExecute ~= nil then
+						self:onExecute()
+					end
+				else
+					local os2 = sender.parent.parent.parent.os
+					os2.messageBox("message", "This file does not exist!\nPlease select another file.", "Warning", 
+						{ 
+							{caption = "OK", onClick = function(sender) os2.hideMessageBox() end } 
+						}, "defText")
+				end
+			end
+
+
+			local cancelButton = button.Create(panel2, "CancelButton")
+			cancelButton.left = openButton.left + openButton.width + 1
+			cancelButton.top = 2
+			cancelButton.height = 1
+			cancelButton.width = 8
+			--openButton.forecolor2 = colors.white
+			cancelButton.align = "center"
+			cancelButton.caption = " Cancel"
+
+			cancelButton.onClick = function(sender)
+				self.fileName = nil
+				--self.parent.parent.forms["OpenDialogForm"] = nil
+				self.dialogForm = nil
+				self.lastActiveForm:show()
+			end
+
+
+
+			local backButton = button.Create(panel1, "BackButton")
+			backButton.left = 2
+			backButton.top = 2
+			backButton.height = 1
+			backButton.width = 9
+			backButton.forecolor2 = colors.white
+			backButton.align = "center"
+			backButton.caption = " <- Back"
+
+			backButton.onClick = function(sender)
+				listView:goBack()
+			end
+
+
+			local addressBar = edit.Create(panel1, "AddressBar")
+			addressBar.left = 2 + 9 + 1
+			addressBar.top = 2
+			addressBar.height = 1
+			addressBar.width = self.parent.parent.canvas.size.x - 2 - 9 - 1 - 5
+			addressBar.text = self.initialDir
+
+			addressBar.onRefresh = function(sender)
+				sender.text = string.gsub(sender.text, "%/%/", "%/")
+			end
+
+
+
+			local goButton = button.Create(panel1, "GoButton")
+			goButton.left = 2 + 9 + 1 + addressBar.width + 1
+			goButton.top = 2
+			goButton.height = 1
+			goButton.width = 4
+			goButton.forecolor2 = colors.white
+			goButton.align = "center"
+			goButton.caption = " Go"
+
+			goButton.onClick = function(sender)
+				if addressBar.text:find("home:/") then
+					listView:navigate(addressBar.text)
+				else
+					listView:navigate("home:/" .. addressBar.text)
+				end
+			end
+		end,
+	}
+
+	_parent.widgets[name] = dialog
+	_parent.lastZOrder = _parent.lastZOrder + 1
+	dialog.zOrder = _parent.lastZOrder
+	return dialog
+end

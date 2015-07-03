@@ -1,0 +1,46 @@
+local path = "$CURRENT$|$WIN$/sysWoW/|$WIN$/system2/|$WIN$/userdata/documents/|home:/rom/programs/|home:/"
+local current_path = "$WIN$/userdata/documents/"
+local history = {}
+
+
+-- /* http://lua-users.org/wiki/SplitJoin */ --
+function string:split(sep)
+	local sep, fields = sep or ":", {}
+	local pattern = string.format("([^%s]+)", sep)
+	self:gsub(pattern, function(c) fields[#fields+1] = c end)
+	return fields
+end
+
+
+local function expandEnvironmentVars(s)
+	return string.gsub(string.gsub(s, "$CURRENT$", current_path), "$WIN$", "home:/" .. os.getSystemPath)
+end
+
+
+local function resolvePath(s)
+	s = string.split(expandEnvironmentVars(path), "|")
+	for i, v in ipairs(s) do
+		if fs.exists(path .. v) then
+			return path .. v
+		end
+	end
+end
+
+
+print("CCWin [Version 1.0]")
+print("(c) Puzzletime, 2014-2015")
+print("")
+
+
+while true do
+	print(expandEnvironmentVars(current_path) .. "> ")
+	command = read(nil, history)
+	table.insert(history)
+
+	if string.lower(cmd) == "programs" then
+	else
+		shell.run(cmd)
+		--args = string.split(cmd, " ")
+		--local p = resolvePath(cmd)
+	end
+end

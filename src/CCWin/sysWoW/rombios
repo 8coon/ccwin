@@ -1,0 +1,132 @@
+G_ENV = {}
+
+
+
+-- /* http://lua-users.org/wiki/SplitJoin */ --
+function string:split(sep)
+	local sep, fields = sep or ":", {}
+	local pattern = string.format("([^%s]+)", sep)
+	self:gsub(pattern, function(c) fields[#fields+1] = c end)
+	return fields
+end
+
+function stringstarts(String,Start)
+   return string.sub(String,1,string.len(Start))==Start
+end
+
+function stringends(String,End)
+   return End=='' or string.sub(String,-string.len(End))==End
+end
+
+
+
+function os.run(env, file, ...)
+	local fenv = {}
+	env = env or {}
+	for k, v in pairs(getfenv(1)) do
+		fenv[k] = v
+	end
+	for k, v in pairs(env) do
+		fenv[k] = v
+	end
+
+	local p = assert(loadfile(file))
+
+	setfenv(p, fenv)
+	G_ENV = fenv
+
+	local args = args or {...}
+
+	if type(args) ~= "table" then
+		if type(args) == "string" then
+			local argList = string.split(args, " ")
+			local argsNew = {}
+			local cArg = ""
+			for i, v in ipairs(argList) do
+				local added = false
+				if stringstarts(v, "\"") and string.len(cArg) == 0 then
+					cArg = v
+					added = true
+				end
+
+				if stringends(v, "\"") and string.len(cArg) ~= 0 then
+					table.insert(argsNew, cArg)
+					added = true
+				end
+
+				if not added then
+					table.insert(argsNew, v)
+				end
+			end
+
+			args = argsNew
+		else
+			args = {args}
+		end
+	end
+	--error(args)
+
+	local thread = coroutine.create(p)
+	local running = true
+
+	while running do
+		if coroutine.status(thread) ~= "dead" then
+			coroutine.resume(thread, unpack(args))
+			coroutine.yield()
+		else
+			running = false
+		end
+	end
+	--p(unpack(args))
+end
+
+
+local oldLoadAPI = os.loadAPI
+function os.loadAPI(fn)
+	code = loadfile(fn)
+	fn = string.split(fn, "/")
+	fn = fn[#fn]
+
+	local lib = {}
+	setmetatable(lib, { __index = getfenv() })
+	setfenv(code, lib)
+
+	result, err = pcall(code)
+	if not result then
+		error(err)
+	end
+
+	local final = {}
+	for k, v in pairs(lib) do
+		final[k] = v
+	end
+
+	if G_ENV[fn] == nil then
+		G_ENV[fn] = final
+	end
+
+	return final
+end
+
+
+sleep = function(t)
+	--print("sleeping " .. tostring(t))
+	os.sleep(t)
+end
+
+
+term.native = function()
+	return term
+end
+
+
+_EMULATED = true
+
+
+window = os.loadAPI("rom/apis/window")
+textutils = os.loadAPI("rom/apis/textutils")
+colors = os.loadAPI("rom/apis/colors")
+colours = os.loadAPI("rom/apis/colours")
+
+os.run(nil, "/rom/programs/shell")
+--os.run(nil, "/romtest")

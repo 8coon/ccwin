@@ -1,0 +1,205 @@
+
+function Create(_parent, name)
+	local listView = panel.Create(_parent, name)
+	local ITEM_WIDTH = 9
+	local ITEM_HEIGHT = 6 --5
+
+	listView.list = {}
+	listView.selectedList = {}
+	listView.showScroll = true
+	listView.offset = 0
+	listView.contextMenuConstructor = nil
+	listView.widgets.scrollBar = scrollBar.Create(listView, "scrollBar")
+
+	listView.widgets.scrollBar.min = 0
+	listView.widgets.scrollBar.max = 50
+	listView.widgets.scrollBar.value = 0
+	listView.widgets.scrollBar.step = 2
+
+	listView.widgets.scrollBar.onChange = function(sender)
+		sender.parent.offset = sender.value
+	end
+
+
+	listView.reposition = function(self, height, width)
+		self.height = height
+		self.width = width
+
+		self.widgets.scrollBar.left = width - 1
+		self.widgets.scrollBar.height = height
+	end
+
+
+	listView.drawItem = function(self, index, selected)
+		local item = self.list[index]
+		index = index - 1
+
+		if item ~= nil then
+			local x = 0
+			local y = 0
+			local maxX = math.floor((self.width - 2) / ITEM_WIDTH) - 1
+
+			for i = 1, index do
+				x = x + 1
+
+				if x > maxX then
+					x = 0
+					y = y + 1
+				end
+			end
+
+			x = x * ITEM_WIDTH + 1
+			y = y * ITEM_HEIGHT + 1
+
+
+			y = y - self.offset
+
+
+			if self.getIcon ~= nil then
+				local icon = self:getIcon(self.list[index + 1])
+
+				if selected then
+					icon.effect = user.CreateEffect_ListViewSelect()
+				else
+					icon.effect = nil
+				end
+
+				self.canvas:draw(x + 2 - 1, y - 1, icon)
+			else
+				if selected then
+					self.canvas:fillrect(x + 2, y, 3, 2, colors.blue)
+				else
+					self.canvas:fillrect(x + 2, y, 3, 2, colors.white)
+				end
+			end
+
+
+
+			local text = string.sub(item.name, 1, string.len(item.name))
+
+			if self.hide_lnk_ext == true then
+				if user.stringends(text, ".lnk") then
+					text = string.sub(text, 1, string.len(text) - 4)
+				end
+			end
+
+			--if string.len(text) > ITEM_WIDTH - 1 then text = string.sub(text, 1, ITEM_WIDTH - 3) .. ".." end
+			if string.len(text) > ITEM_WIDTH - 1 then
+				local text1 = string.sub(text, 1, ITEM_WIDTH - 1)
+				local text2 = string.gsub(text, text1, "", 1)
+
+				if string.len(text2) > ITEM_WIDTH - 1 then text2 = string.sub(text2, 1, ITEM_WIDTH - 3) .. ".." end
+
+				local text1X = x + math.ceil((ITEM_WIDTH - 2) / 2) - math.ceil(string.len(text1) / 2)
+				local text2X = x + math.ceil((ITEM_WIDTH - 2) / 2) - math.ceil(string.len(text2) / 2)
+
+				self.canvas.bgcolor = self.bgcolor
+				self.canvas.forecolor = user.contrast_color(self.bgcolor)
+				self.canvas:setCursorPos(text1X, y + 3)
+				self.canvas:write(text1)
+				self.canvas:setCursorPos(text2X, y + 4)
+				self.canvas:write(text2)
+			else
+				local textX = x + math.ceil((ITEM_WIDTH - 2) / 2) - math.ceil(string.len(text) / 2)
+
+				self.canvas.bgcolor = self.bgcolor
+				self.canvas.forecolor = user.contrast_color(self.bgcolor)
+				self.canvas:setCursorPos(textX, y + 3)
+				self.canvas:write(text)
+			end
+		end
+	end
+
+
+
+	listView.onBeforeRefresh = function(self)
+		self:reposition(self.height, self.width)
+	end
+
+	listView.getMax = function(self)
+		local list = self.list
+		local maxX = math.floor((self.width - 2) / ITEM_WIDTH)
+		local max = (math.ceil(#list / maxX) * ITEM_HEIGHT) - self.height
+		if max < 0 then max = 0 end
+
+		return max
+	end
+
+
+	listView.onRefresh = function(self)
+		self.widgets.scrollBar.max = self:getMax()
+
+		for i, v in ipairs(self.list) do
+			if self.canvas ~= nil then
+				self:drawItem(i)
+			end
+		end
+
+		for i, v in ipairs(self.selectedList) do
+			if self.canvas ~= nil then
+				self:drawItem(v, true)
+			end
+		end
+
+		if self.onAfterRefresh ~= nil then
+			self:onAfterRefresh()
+		end
+	end
+
+
+	listView.getItemAt = function(self, x, y)
+		local index = math.floor(self.width /  ITEM_WIDTH) * (y - 1) + x
+
+		if self.list[index] ~= nil then
+			return index
+		else
+			return 0
+		end
+	end
+
+
+	listView.onMouseClick = function(self, button, x, y)
+		local mx = x
+		local my = y
+
+		y = y - 1 + self.offset - self.top
+		x = x - self.left - 2
+
+		if self.width - x > 8 then
+			x = math.floor((x + 1) / ITEM_WIDTH)
+			y = math.floor(y / ITEM_HEIGHT)
+
+			if x > math.floor(self.width /  ITEM_WIDTH) - 0 then x = math.floor(self.width / ITEM_WIDTH) - 0 end
+
+			x = x + 1
+			y = y + 1
+		else
+			x = 0
+			y = 0
+		end
+
+		--self.parent.name = x .. " " .. y .. " " .. math.floor(self.width /  ITEM_WIDTH)
+		local item = self:getItemAt(x, y)
+		--if item ~= nil then self.parent.name = item.name else self.parent.name = " " end
+		if item ~= 0 then
+			if self.isCtrlDown then
+				table.insert(self.selectedList, item)
+			else
+				self.selectedList = { item }
+			end
+		else
+			self.selectedList = {}
+		end
+
+
+		if button == 2 then
+			if self.onContextMenu ~= nil then
+				self:onContextMenu(item, mx, my)
+			end
+		end
+	end
+
+
+	--listView:reposition(listView.height, listView.width)
+	return listView
+end

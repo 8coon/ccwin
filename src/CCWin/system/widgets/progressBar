@@ -1,0 +1,55 @@
+
+
+function Create(_parent, name)
+	local progressBar = {
+		parent = _parent,
+		left = 1,
+		top = 1, 
+		height = 1,
+		width = 10,
+		bgcolor = colors.white,
+		forecolor = colors.black,
+		fillcolor = colors.blue,
+		showPercent = true,
+		focused = false,
+		visible = true,
+		position = 0,
+		max = 100,
+
+
+		refresh = function(self)
+			if self.position > self.max then self.position = self.max end
+			if self.position < 0 then self.position = 0 end
+
+			local canvas = self.parent:getCanvas()
+			local x = self.left
+			local y = self.top
+			local percent = math.ceil((100 * self.position) / self.max)
+			local w = math.ceil((self.width * self.position) / self.max)
+			local str = tostring(percent) .. "%"
+			if w > self.width then w = self.width end
+			if w < 0 then w = 0 end
+
+			if self.parent.style ~= "none" then
+				y = y + 1
+			end
+
+			canvas:fillrect(self.left, y, self.width - 1, self.height - 1, self.bgcolor)
+			canvas:fillrect(self.left, y, w - 1, self.height - 1, self.fillcolor)
+
+			x = self.left + math.floor(self.width / 2) - math.floor(string.len(str) / 2)
+
+			if self.showPercent then
+				canvas:setCursorPos(x, y)
+				canvas.bgcolor = self.fillcolor
+				canvas.forecolor = self.bgcolor
+				canvas:write(str)
+			end
+		end
+	}
+
+	_parent.widgets[name] = progressBar
+	_parent.lastZOrder = _parent.lastZOrder + 1
+	progressBar.zOrder = _parent.lastZOrder
+	return progressBar
+end

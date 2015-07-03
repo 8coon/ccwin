@@ -1,0 +1,155 @@
+local file = fs.open("boot.ini", "r")
+local kernel = nil
+
+if file ~= nil then
+	kernel = file.readLine()
+	kernel = file.readLine()
+	kernel = string.sub(kernel, string.find(kernel, "=") + 2, string.len(kernel))
+	file.close()
+end
+
+
+if fs.exists(".reboot") then
+	local file = fs.open(".reboot", "r")
+
+	if file ~= nil then
+		local command = file.readAll()
+		file.close()
+		fs.delete(".reboot")
+
+		if command == "LOADTO CRAFTOS" then
+			--shell.run("shell")
+			return 0
+		end
+	end
+else
+	--os.run({}, kernel .. "/drivers/kernel", kernel)
+	os.loadAPI(kernel .. "/system/iniFiles")
+
+	local config = iniFiles.read("boot.ini")
+	local selectedIndex = 1
+	local timer = 10
+	local running = true
+	local len = 0
+
+	if type(config.loader) ~= "table" then len = 0 else
+		for k, v in pairs(config.loader) do
+			len = len + 1
+		end
+	end
+
+
+
+	if len > 1 then
+		term.setBackgroundColor(colors.black)
+		term.setTextColor(colors.white)
+		term.clear()
+		term.setCursorPos(1, 1)
+		term.setCursorBlink(true)
+		os.startTimer(0)
+
+		local t = {}
+
+		if config ~= nil then
+			for k, v in pairs(config.loader) do
+				term.clearLine()
+				table.insert(t, k)
+			end
+		end
+
+
+		while running do
+			local event, key = os.pullEvent()
+
+			if event == "timer" then
+				timer = timer - 1
+				os.startTimer(1)
+			end
+
+			if event == "key" then
+				timer = -9
+
+				if key == 200 then
+					if selectedIndex > 1 then selectedIndex = selectedIndex - 1 end
+				end
+
+				if key == 208 then
+					if selectedIndex < len then selectedIndex = selectedIndex + 1 end
+				end
+
+				if key == 28 then
+					term.clear()
+					term.setCursorPos(1, 1)
+					term.setBackgroundColor(colors.black)
+					term.setTextColor(colors.white)
+					term.clear()
+
+					if t[selectedIndex] == "%VERSION%" then
+						shell.run(config.loader[t[selectedIndex]])
+					else
+						os.run({}, config.loader[t[selectedIndex]], kernel)
+					end
+				end
+			end
+
+
+			term.setBackgroundColor(colors.black)
+			term.setTextColor(colors.white)
+			term.setCursorPos(1, 3)
+			term.setCursorBlink(false)
+			print("Please select the operating system to start:")
+			print("")
+			print("")
+
+			for k, v in pairs(config.loader) do
+				term.clearLine()
+				print("    " .. string.gsub(k, "%%VERSION%%", os.version()))
+			end
+
+			print("")
+			print("")
+			print("Use the up and down keys to move the hightlight to your choice.")
+			print("Press ENTER to choose.")
+			print("")
+
+			if timer > 0 then
+				print("Seconds until the hightlighted system will be started: " .. timer)
+			elseif timer == 0 then
+				term.clear()
+				term.setCursorPos(1, 1)
+
+				if t[selectedIndex] == "%VERSION%" then
+					shell.run(config.loader[t[selectedIndex]])
+				else
+					os.run({}, config.loader[t[selectedIndex]], kernel)
+				end
+			else
+				print(string.rep(" ", term.getSize()))
+				print(string.rep(" ", term.getSize()))
+			end
+
+			term.setCursorPos(1, 5 + selectedIndex)
+			term.setBackgroundColor(colors.white)
+			term.setTextColor(colors.black)
+			term.clearLine()
+			term.write("    " .. string.gsub(t[selectedIndex], "%%VERSION%%", os.version()))
+		end
+	elseif len == 1 then
+		for k, v in pairs(config.loader) do
+			if k == "%VERSION%" then
+				shell.run(v)
+			else
+				os.run(getfenv(), v, kernel)
+			end
+		end
+	else
+		term.clear()
+		term.setCursorPos(1, 1)
+		print("LOADER section in BOOT.INI is empty - launching default shell...")
+		os.sleep(1)
+		shell.run("shell")
+	end
+
+
+	return 0
+end

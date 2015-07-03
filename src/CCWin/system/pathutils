@@ -1,0 +1,100 @@
+
+function split(self, sep)
+    local sep, fields = sep or ":", {}
+    local pattern = string.format("([^%s]+)", sep)
+    self:gsub(pattern, function(c) fields[#fields+1] = c end)
+    return fields
+end
+
+function string.starts(String,Start)
+   return string.sub(String,1,string.len(Start))==Start
+end
+
+function string.ends(String,End)
+   return End=='' or string.sub(String,-string.len(End))==End
+end
+
+
+
+function expand(line)
+	local expanded = split(line, " ")
+	local args = {}
+	local i = 1
+
+	repeat
+		if string.starts(expanded[i], "\"") and (not string.ends(expanded[i], "\"")) then
+			local str = ""
+
+			repeat
+				str = str .. expanded[i] .. " "
+				i = i + 1
+			until string.ends(expanded[i-1], "\"")
+
+			str = string.gsub(str, "\"", "")
+			str = string.sub(str, 1, string.len(str) - 1)
+			table.insert(args, str)
+		else
+			expanded[i] = string.gsub(expanded[i], "\"", "")
+			table.insert(args, expanded[i])
+		end
+
+		i = i + 1
+	until i > #expanded
+
+	return args
+end
+
+
+function extractFilePath(fileName)
+	if string.starts(fileName, "home:/") then
+		fileName = string.gsub(fileName, "home:/", "")
+	end
+
+	fileName = string.gsub(fileName, "//", "/")
+
+
+	local data = split(fileName, "/")
+	local result = ""
+
+	if #data > 1 then
+		for i = 1, #data - 1 do
+			result = result .. data[i] .. "/"
+		end
+	else
+		result = ""
+	end
+
+	--error(result)
+	return "home:/" .. result
+end
+
+
+function extractFileName(fileName)
+	if (fileName ~= nil) and (type(fileName) == "string") then
+		local data = split(fileName, "/")
+		return data[#data]
+	else
+		return ""
+	end
+end
+
+
+function extractRealFileName(fileName)
+	if (fileName ~= nil) and (type(fileName) == "string") then
+		local data = extractFileName(split(fileName, "%."))
+		return data[1]
+	else
+		return ""
+	end
+end
+
+
+function buildUp(args)
+	local result = ""
+
+	for i, v in ipairs(args) do
+		result = result .. v .. " "
+	end
+
+	return result
+end

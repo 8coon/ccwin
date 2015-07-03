@@ -1,0 +1,102 @@
+
+
+function Create(_parent, name)
+	local edit = {
+		parent = _parent,
+		left = 1,
+		top = 1, 
+		height = 1,
+		width = 10,
+		bgcolor = colors.white,
+		forecolor = colors.black,
+		text = name,
+		focused = false,
+		visible = true,
+		align = "left",
+		cursor = 0,
+		editable = true,
+
+
+		refresh = function(self)
+			local canvas = self.parent:getCanvas()
+			local x = self.left
+			local y = self.top
+			local str = self.text
+			local inputText = ""
+
+			if self.parent.style ~= "none" then
+				y = y + 1
+			end
+
+			canvas:fillrect(self.left, y, self.width - 1, self.height - 1, self.bgcolor)
+			
+			if string.len(str) > self.width - 1 then
+				str = string.sub(str, 1, self.width - 4) .. ".."
+			end
+
+			if self.align == "right" then
+				x = self.left + self.width - string.len(str)
+			end
+
+			if self.align == "center" then
+				x = self.left + math.floor(self.width / 2) - math.floor(string.len(str) / 2)
+			end
+
+			if self.focused == false then
+				canvas:setCursorPos(x, y)
+				canvas.bgcolor = self.bgcolor
+				canvas.forecolor = colors.lightGray
+				canvas:write("> ")
+				canvas.forecolor = self.forecolor
+				canvas:write(str)
+				canvas.cursorBlink = false
+
+				if self.parent.parent.os ~= nil then
+					self.parent.parent.os.hideCaret()
+				end
+			else
+				canvas.bgcolor = self.bgcolor
+				canvas.forecolor = self.forecolor
+				canvas:setCursorPos(self.left, y)
+				canvas.cursorBlink = true
+
+				if string.len(self.text) > self.width - 2 then
+					inputText = string.sub(self.text, string.len(self.text) - self.width + 2, string.len(self.text))
+				else
+					inputText = self.text
+				end
+
+				canvas:write(inputText)
+
+				if self.parent.parent.os ~= nil then
+					self.parent.parent.os.showCaret()
+					self.parent.parent.os.setCaretPos(canvas.cursorPos.x + self.parent.left, canvas.cursorPos.y + self.parent.top)
+					self.parent.parent.os.setCaretColor(self.forecolor)
+				end
+			end
+		end,
+
+
+		--mouseClick = function(self, button, x, y)
+
+		--end,
+
+
+		keyPress = function(self, key, char)
+			if self.editable then
+				if key == 14 then
+					if string.len(self.text) > 0 then
+						self.text = string.sub(self.text, 1, string.len(self.text) - 1)
+					end
+				else
+					self.text = self.text .. char
+				end
+			end
+		end,
+	}
+
+	_parent.widgets[name] = edit
+	_parent.lastZOrder = _parent.lastZOrder + 1
+	edit.zOrder = _parent.lastZOrder
+	return edit
+end

@@ -1,0 +1,72 @@
+local args_raw = {...}
+
+local args = {
+	optimize = true,
+	path = "",
+	main = "main.c",
+}
+
+
+
+function split(self, sep)
+    local sep, fields = sep or ":", {}
+    local pattern = string.format("([^%s]+)", sep)
+    self:gsub(pattern, function(c) fields[#fields+1] = c end)
+    return fields
+end
+
+
+
+
+function find_consts(text)
+	consts = {
+		uint8_t = {},
+		uint16_t = {},
+		uint32_t = {},
+		int8_t = {},
+		int16_t = {},
+		int32_t = {},
+	}
+
+
+	text = string.gsub("\"", string.char(240))
+	local finding = true
+
+	while finding do
+		local _start, _end = string.find(text, "\'%w\'")
+		if _start then
+			local const = string.byte(string.sub(_start + 1, _end - 1))
+			table.insert(consts.uint8_t, const)
+			text = string.sub(text, 1, _start) .. "__CONST_" .. tostring(#consts.uint8_t) ..
+					string.sub(text, string._end, string.len(text))
+		else
+			finding = false
+		end
+	end
+
+	return text, consts
+end
+
+
+function compile_text(text)
+	local text, consts = find_consts(text)
+	print(text)
+	
+	for k, v in pairs(consts) do
+		print(k, "  ", v)
+	end
+
+	lines = split(text, ";")
+end
+
+
+
+compile_text([[
+	void main() {
+		int a = 8;
+		int b = 'c';
+		char arr[] = "Tomoko";
+	}
+]])
+
+

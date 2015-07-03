@@ -1,0 +1,64 @@
+
+function Create(_parent, name)
+	local saveDialog = openDialog.Create(_parent, name)
+
+	saveDialog.title = "Save As..."
+	saveDialog.oldExecute = saveDialog.execute
+
+	saveDialog.execute = function(self)
+		self:oldExecute()
+
+		self.dialogForm.widgets["Panel2"].widgets["OpenButton"].caption = " Save"
+
+		self.dialogForm.widgets["Panel2"].widgets["OpenButton"].onClick = function(sender)
+			local fn = sender.parent.parent.widgets["Panel"].widgets["AddressBar"].text .. "/" .. 
+				sender.parent.parent.widgets["Panel2"].widgets["FileName"].text
+			fn = string.gsub(fn, "//", "/")
+			fn = string.gsub(fn, "home:/", "", 1)
+
+
+			if fs.exists(fn) and (not fs.isDir(fn)) then
+				local os2 = sender.parent.parent.parent.os
+				os2.messageBox("message", "This file already exists.\nOverride?", "Warning", 
+					{ 
+						{caption = "Yes", onClick = function(sender2) 
+							os2.hideMessageBox()
+
+							self.fileName = "home:/" .. fn
+							self.dialogForm = nil
+							self.lastActiveForm.parent.forms["CommonDialogForm"] = nil
+							self.lastActiveForm:show()
+							--self.lastActiveForm.parent.activeForm = self.lastActiveForm
+
+							self.parent.parent.os.sendMessage(self.parent.parent.hwnd, { msg = "refresh" })
+
+							if self.onExecute ~= nil then
+								self:onExecute()
+							end
+						end },
+						{caption = "No", onClick = function(sender) os2.hideMessageBox() end } 
+					}, "defText")
+			else
+				if fs.isDir(fn) then
+					self.dialogForm.widgets["listView"]:navigate("home:/" .. fn)
+				else
+					self.fileName = "home:/" .. fn
+					self.dialogForm = nil
+					self.lastActiveForm:show()
+					--self.lastActiveForm.parent.activeForm = self.lastActiveForm
+
+					if self.onExecute ~= nil then
+						self:onExecute()
+					end
+
+					self.parent.parent.os.sendMessage(self.parent.parent.hwnd, { msg = "refresh" })
+				end
+			end
+		end
+	end
+
+	--kiMain.c -o kiMain.bin -Wl,--subsystem,native
+
+
+	return saveDialog
+end

@@ -1,0 +1,130 @@
+
+
+function Create(_parent, name)
+	local panel = {
+		parent = _parent,
+		left = 1,
+		top = 1, 
+		height = 16,
+		width = 24,
+		bgcolor = colors.white,
+		focused = false,
+		visible = true,
+		align = "left",
+		style = "none",
+		canvas = nil,
+		widgets = {},
+		focusedWidget = nil,
+		lastZOrder = 0,
+
+
+
+		refresh = function(self)
+			local canvas = self.parent:getCanvas()
+			local x = self.left
+			local y = self.top
+			local str = self.caption
+
+			if self.parent.style ~= "none" then
+				y = y + 1
+			end
+
+			self.canvas = user.CreateCanvas(self.width, self.height)
+			self.canvas:fillrect(1, 1, self.width, self.height, self.bgcolor)
+
+			if self.onBeforeRefresh ~= nil then
+				self:onBeforeRefresh()
+			end
+
+
+			for k, v in pairs(self.widgets) do
+				if self.focusedWidget == v then
+					v.focused = true
+				else
+					v.focused = false
+
+					if v.onRefresh ~= nil then
+						v:onRefresh()
+					end
+
+					if v.visible == true then
+						v:refresh()
+					end
+				end
+			end
+
+			--if self.parent.focusedWidget == self then
+				if self.focusedWidget ~= nil then
+					if self.focusedWidget.onRefresh ~= nil then
+						self.focusedWidget:onRefresh()
+					end
+
+					self.focusedWidget:refresh()
+				end
+			--end
+
+			if self.onRefresh ~= nil then
+				self:onRefresh()
+			end
+
+
+			canvas:draw(self.left, self.top, self.canvas)
+			canvas:setCursorPos(self.canvas.cursorPos.x + self.left, self.canvas.cursorPos.y + self.top)
+			canvas.cursorBlink = self.canvas.cursorBlink
+		end,
+
+
+		mouseClick = function(self, button, x, y)
+			self.focusedWidget = nil
+			x = x - self.left + 0
+			y = y - self.top -- 1
+
+			for name, widget in pairs(self.widgets) do
+				if (x >= widget.left) and (x < widget.left + widget.width) and 
+				   (y >= widget.top) and (y < widget.top + widget.height) then
+					self.focusedWidget = widget
+
+
+					if widget.onMouseClick ~= nil then
+						widget:onMouseClick(button, --[[x + self.left, y + self.top]]x + widget.left, y + widget.top)
+					end
+
+					if widget.mouseClick ~= nil then
+						widget:mouseClick(button, --[[x + self.left, y + self.top]]x + widget.left, y + widget.top)
+					end
+
+
+
+					if button == 1 then
+						if widget.onClick ~= nil then
+							widget:onClick()
+						end
+					else
+						if widget.onPopup ~= nil then
+							widget:onPopup()
+						end
+					end
+				end
+			end
+		end,
+
+
+		keyPress = function(self, key, char)
+			if self.focusedWidget ~= nil then
+				if self.focusedWidget.keyPress ~= nil then
+					self.focusedWidget:keyPress(key, char)
+				end
+			end
+		end,
+
+
+		getCanvas = function(self)
+			return self.canvas
+		end,
+	}
+
+	_parent.widgets[name] = panel
+	_parent.lastZOrder = _parent.lastZOrder + 1
+	panel.zOrder = _parent.lastZOrder
+	return panel
+end

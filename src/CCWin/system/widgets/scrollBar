@@ -1,0 +1,144 @@
+
+
+function Create(_parent, name)
+	local scrollBar = {
+		parent = _parent,
+		left = 1,
+		top = 1, 
+		height = 10,
+		width = 1,
+		value = 0,
+		min = 0,
+		max = 100,
+		step = 10,
+		focused = false,
+		vertical = true,
+		visible = true,
+
+
+		refresh = function(self)
+			local canvas = self.parent:getCanvas()
+			local x = self.left
+			local y = self.top
+			local str = self.caption
+
+			if self.parent.style ~= "none" then
+				y = y + 1
+			end
+
+			canvas:fillrect(self.left, y, self.width - 1, self.height - 1, colors.white)
+
+			if self.vertical == true then
+				canvas:setCursorPos(x, y)
+				canvas.bgcolor = colors.gray
+				canvas.forecolor = colors.lightGray
+				canvas:write("*")
+
+				canvas:setCursorPos(x, y + self.height - 1)
+				canvas.bgcolor = colors.gray
+				canvas.forecolor = colors.lightGray
+				canvas:write("*")
+
+				local selPos = math.ceil((self.height - 2) * self.value / self.max)
+				if selPos < 1 then selPos = 1 end
+				if selPos > self.height - 2 then selPos = self.height - 2 end
+
+				canvas:setCursorPos(x, y + selPos)
+				canvas:write(" ")
+			else
+				canvas:setCursorPos(x, y)
+				canvas.bgcolor = colors.gray
+				canvas.forecolor = colors.lightGray
+				canvas:write("*")
+
+				canvas:setCursorPos(x + self.width - 1, y)
+				canvas.bgcolor = colors.gray
+				canvas.forecolor = colors.lightGray
+				canvas:write("*")
+
+				local selPos = math.ceil((self.width - 3) * self.value / self.max)
+				if selPos < 1 then selPos = 1 end
+				if selPos > self.width - 2 then selPos = self.width - 2 end
+
+				canvas:setCursorPos(x + selPos, y)
+				canvas:write(" ")
+			end
+		end,
+
+
+		mouseDrag = function(self, button, x, y)
+			if button == 1 then
+				local delta = math.ceil((self.height - 2) / self.max) * x
+				if self.vertical == true then
+					delta = math.ceil((self.width - 2) / self.max) * y
+				end
+
+				self.value = self.value + delta
+				if self.value < self.min then self.value = self.min end
+				if self.value > self.max then self.value = self.max end
+
+				self:refresh()
+				if self.onChange ~= nil then
+					self:onChange()
+				end
+			end
+		end,
+
+
+		mouseClick = function(self, button, x, y)
+			if button == 1 then
+				--[[local selPos = math.floor(self.height * self.value / self.max)
+				if selPos < 1 then selPos = 1 end
+				if selPos > self.height - 2 then selPos = self.height - 2 end
+				local cx = self.left
+				local cy = self.top
+
+				if self.parent.style ~= "none" then
+					cy = cy + 1
+				end]]
+
+				local cx = self.left
+				local cy = self.top
+				local oldValue = self.value
+				local changed = false
+
+				--if self.parent.style ~= "none" then
+					cy = cy + 1
+				--end
+
+				if self.vertical == true then
+					if y == cy then
+						self.value = self.value - self.step
+						changed = true
+					end
+
+					if y == cy + self.height - 1 then
+						self.value = self.value + self.step
+						changed = true
+					end
+				else
+					if x == cx - 1 then
+						self.value = self.value - self.step
+						changed = true
+					end
+
+					if x == cx + self.width - 2 then
+						self.value = self.value + self.step
+						changed = true
+					end
+				end
+
+				if self.value < self.min then self.value = self.min end
+				if self.value > self.max then self.value = self.max end
+
+
+				if (oldValue ~= self.value) and (self.onChange ~= nil) then self:onChange() end
+			end
+		end,
+	}
+
+	_parent.widgets[name] = scrollBar
+	_parent.lastZOrder = _parent.lastZOrder + 1
+	scrollBar.zOrder = _parent.lastZOrder
+	return scrollBar
+end

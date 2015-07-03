@@ -1,0 +1,55 @@
+
+
+function Create(_parent, name)
+	local paintBox = {
+		parent = _parent,
+		left = 1,
+		top = 1, 
+		pheight = 0,
+		pwidth = 0,
+		height = 16,
+		width = 24,
+		bgcolor = colors.white,
+		focused = false,
+		visible = true,
+		canvas = nil,
+		widgets = {},
+		brush = {
+			bgcolor = colors.black,
+			forecolor = colors.white,
+			char = " ",
+		},
+
+
+		refresh = function(self)
+			if self.canvas == nil then
+				self.canvas = user.CreateCanvas(self.width - 1, self.height)
+				self.canvas:fillrect(1, 1, self.width - 1, self.height, self.bgcolor)
+				self.parent:getCanvas():draw(self.left, self.top, self.canvas)
+			else
+				if (self.pheight ~= self.height) or (self.pwidth ~= self.width) then
+					local canvas = self.canvas
+					self.canvas = user.CreateCanvas(self.width - 1, self.height)
+					self.canvas:fillrect(1, 1, self.width - 1, self.height, self.bgcolor)
+					self.canvas:draw(0, 0 --[[1]], canvas)
+					self.canvas.effect = canvas.effect
+				end
+
+				self.parent:getCanvas():draw(self.left, self.top, self.canvas)
+			end
+
+			self.pheight = self.height
+			self.pwidth = self.width
+		end,
+
+
+		mouseClick = function(self, button, x, y)
+			--if self.onMouseClick ~= nil then self:onMouseClick(button, x - self.left, y - self.top) end
+		end
+	}
+
+	_parent.widgets[name] = paintBox
+	_parent.lastZOrder = _parent.lastZOrder + 1
+	paintBox.zOrder = _parent.lastZOrder
+	return paintBox
+end

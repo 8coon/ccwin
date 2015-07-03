@@ -1,0 +1,220 @@
+
+function Create(name)
+	local form = {
+		name = name,
+		parent = nil,
+		widgets = {},
+		focusedWidget = nil,
+		style = "double",
+		controlBox = true,
+		lastZOrder = 0,
+		bgcolor = colors.lightGray,
+		os = nil,
+		left = 0, --For compatibility with widgets.Panel
+		top = 0,
+		drawTitle = true,
+
+
+		refresh = function(self)
+			if self.parent ~= nil then
+				if self.drawTitle then
+					self.parent.canvas:fillrect(1, 1, self.parent.canvas.size.x, 1, colors.blue)
+					self.parent.canvas:fillrect(1, 2, self.parent.canvas.size.x, self.parent.canvas.size.y - 1, self.bgcolor)
+					self.parent.canvas:setCursorPos(2, 1)
+
+					self.parent.canvas.bgcolor = colors.blue
+					self.parent.canvas.forecolor = colors.white
+					self.parent.canvas:write(self.name)
+				else
+					self.parent.canvas:fillrect(1, 1, self.parent.canvas.size.x, self.parent.canvas.size.y - 1, self.bgcolor)
+				end
+
+				self.os = self.parent.os
+
+				if self.controlBox then
+					self.parent.canvas:setCursorPos(self.parent.canvas.size.x - 1, 1)
+					self.parent.canvas.bgcolor = colors.red
+					self.parent.canvas.forecolor = colors.white
+					self.parent.canvas:write(" X")
+
+					self.parent.canvas:setCursorPos(self.parent.canvas.size.x - 3, 1)
+					self.parent.canvas.bgcolor = colors.blue
+					self.parent.canvas.forecolor = colors.white
+					self.parent.canvas:write("- ")
+				end
+
+				if self.onRefresh ~= nil then
+					self:onRefresh()
+				end
+
+
+				t = {}
+
+				for k, v in pairs(self.widgets) do
+					table.insert(t, v)
+				end
+
+
+				local sort = function(arg1, arg2)
+					return arg1.zOrder < arg2.zOrder
+				end
+
+				table.sort(t, sort)
+
+
+				--for k, v in pairs(self.widgets) do
+				for k, v in ipairs(t) do
+					if self.focusedWidget == v then
+						v.focused = true
+					else
+						v.focused = false
+
+						if v.onRefresh ~= nil then
+							v:onRefresh()
+						end
+
+						if v.visible == true then
+							v:refresh()
+						end
+					end
+				end
+
+				if self.focusedWidget ~= nil then
+					if self.focusedWidget.onRefresh ~= nil then
+						self.focusedWidget:onRefresh()
+					end
+
+					self.focusedWidget:refresh()
+				end
+			end
+		end,
+
+
+		show = function(self)
+			if self.parent ~= nil then
+				self.parent.activeForm = self
+				self.parent.info.title = self.name
+			end
+		end,
+
+
+		mouseClick = function(self, button, x, y)
+			--[[self.parent.canvas.cursorPos.x = 1
+			self.parent.canvas.cursorPos.y = 2
+
+			self.parent.canvas:write(x)
+			self.parent.canvas:write(" ")
+			self.parent.canvas:write(y)]]
+			self.focusedWidget = nil
+
+			if self.controlBox then
+				if (x == self.parent.canvas.size.x) and (y == 1) then
+					if self.onTerminate ~= nil then
+						if self:onTerminate() then
+							self.parent:terminate()
+						end
+					else
+						self.parent:terminate()
+					end
+				end
+
+				if (x == self.parent.canvas.size.x - 3) and (y == 1) then
+					self.parent.os.setActiveProcess(-1)
+				end
+			end
+
+
+			if --[[self.focusedWidget ~= nil]] false then
+				local widget = self.focusedWidget
+				if (x >= widget.left) and (x <= widget.left + widget.width) and 
+					(y > widget.top) and (y <= widget.top + widget.height) then
+					if button == 1 then
+						if widget.onClick ~= nil then
+							widget:onClick()
+						end
+					else
+						if widget.onPopup ~= nil then
+							widget:onPopup()
+						end
+					end
+
+					if widget.onMouseClick ~= nil then
+						widget:onMouseClick(button, x, y)
+					end
+
+					if widget.mouseClick ~= nil then
+						widget:mouseClick(button, x, y)
+					end
+				end
+			end
+
+			for name, widget in pairs(self.widgets) do
+				if (x >= widget.left) and (x < widget.left + widget.width) and 
+					(y > widget.top) and (y <= widget.top + widget.height) then
+					self.focusedWidget = widget
+
+
+					if widget.onMouseClick ~= nil then
+						widget:onMouseClick(button, x, y)
+					end
+
+					if widget.mouseClick ~= nil then
+						widget:mouseClick(button, x, y)
+					end
+
+
+					if button == 1 then
+						if widget.onClick ~= nil then
+							widget:onClick()
+						end
+					else
+						if widget.onPopup ~= nil then
+							widget:onPopup()
+						end
+					end
+				end
+			end
+		end,
+
+
+		mouseDrag = function(self, button, x, y)
+			self.focusedWidget = nil
+
+			for name, widget in pairs(self.widgets) do
+				if (x >= widget.left) and (x < widget.left + widget.width) and 
+					(y > widget.top) and (y <= widget.top + widget.height) then
+					self.focusedWidget = widget
+
+
+					if widget.onMouseDrag ~= nil then
+						widget:onMouseDrag(button, x, y)
+					end
+
+					if widget.mouseDrag ~= nil then
+						widget:mouseDrag(button, x, y)
+					end
+				end
+			end
+		end,
+
+
+		keyPress = function(self, key, char)
+			if self.focusedWidget ~= nil then
+				if self.focusedWidget.keyPress ~= nil then
+					self.focusedWidget:keyPress(key, char)
+				end
+			end
+
+			if self.onKeyPress ~= nil then
+				self:onKeyPress(key, char)
+			end
+		end,
+
+
+		getCanvas = function(self)
+			return self.parent.canvas
+		end,
+	}
+
+	return form
+end

@@ -1,0 +1,188 @@
+
+function startswith(sbig, slittle)
+  if type(slittle) == "table" then
+    for k,v in ipairs(slittle) do
+      if string.sub(sbig, 1, string.len(v)) == v then 
+        return true
+      end
+    end
+    return false
+  end
+  return string.sub(sbig, 1, string.len(slittle)) == slittle
+end
+
+
+
+function Create(_parent, name)
+	local fileListView = listView.Create(_parent, name)
+	fileListView.path = "home:/"
+	fileListView.firstRefresh = false
+	fileListView.history = {}
+	fileListView.use_history = false
+	fileListView.icon_buffer = {}
+	fileListView.hide_lnk_ext = true
+	fileListView.dirOnly = false
+
+
+	fileListView.getIcon = function(self, item)
+		local ext = ""
+		local result = nil
+		local os2 = self.parent.parent.os
+
+		if item ~= nil then
+			s = item.name
+
+			if (string.len(s) > 0) and (string.find(s, "%.") and s[0] ~= "." ) then
+				local fn = user.split(s, ".")
+				ext = fn[#fn]
+			else
+				if item.dir then
+					ext = "folder"
+				else
+					ext = "unknown"
+				end
+			end
+
+			if user.stringstarts(name, ".") and item.dir then
+				ext = "folder"
+			end
+		end
+
+
+		if self.icon_buffer[ext] == nil then
+			local fileName = os2.getSystemPath() .. "/system2/" .. ext .. ".pic"
+
+			if not fs.exists(fileName) then
+				fileName = os2.getSystemPath() .. "/system2/unknown.pic"
+			end
+
+			local icon = user.loadCanvas("home:/" .. fileName)
+			self.icon_buffer[ext] = icon
+			result = icon
+		else
+			result = self.icon_buffer[ext]
+		end
+
+		if ext == "lnk" then
+			pcall(function()
+				local lnkdata = iniFiles.read(self.path .. "/" .. item.name)
+
+				if lnkdata ~= nil then
+					if lnkdata.shortcut ~= nil then
+						local icon = lnkdata.shortcut.icon
+
+						if icon ~= nil then
+							result = user.loadCanvas(icon):scale(4, 3)
+							result.data[3][1].bgcolor = colors.white
+							result.data[3][1].forecolor = colors.black
+							result.data[3][1].char = "L"
+						end
+					end
+				end
+			end)
+		end
+
+
+		if result == nil then
+			result = user.CreateCanvas(4, 3)
+		end
+
+		return result
+	end
+
+
+	fileListView.refreshList = function(self)
+		local path = string.gsub(self.path, "home:/", "", 1) .. "/"
+
+		self.list = {}
+		self.selectedList = {}
+		self.offset = 0
+		self.widgets.scrollBar.value = 0
+
+		local b_files = fs.list(path)
+		local t_files = {}
+		local files = {}
+
+		for i, v in ipairs(b_files) do
+			if fs.isDir(path .. "/" .. v) then table.insert(files, v) else table.insert(t_files, v) end
+		end
+
+		if not self.dirOnly then
+			for i, v in ipairs(t_files) do
+				table.insert(files, v)
+			end
+		end
+
+
+
+		for i, v in ipairs(files) do
+			table.insert(self.list, { icon = {}, name = v, dir = fs.isDir(path .. "/" .. v) })
+		end
+	end
+
+
+	fileListView.navigate = function(self, path, addToHistory, _os)
+		if not startswith(path, "home:/") then
+			path = self.path .. "/" .. path
+		end
+
+
+		local str = string.gsub(path, "home:/", "", 1) .. "/"
+
+		if fs.isDir(str) then
+			if not (addToHistory == false) then
+				table.insert(self.history, self.path)
+			end
+
+			self.path = path
+			if self.onNavigate ~= nil then self:onNavigate(path) end
+			self.selectedList = {}
+			self:refreshList()
+		else
+			if _os ~= nil then
+				_os.shell.run(path)
+			end
+		end
+	end
+
+
+	fileListView.goBack = function(self)
+		if self.use_history then
+			local addr = table.remove(self.history)
+			if addr ~= nil then
+				self:navigate(addr, false, nil)
+			end
+		else
+			local addr = user.split(self.path, "/")
+
+			if #addr > 1 then
+				local path = ""
+
+				for i = 1, #addr - 1 do
+					path = path .. addr[i] .. "/"
+				end
+
+				self:navigate(path, false, nil)
+			end
+		end
+	end
+
+
+	fileListView.contextMenuConstructor = function(sender, item)
+		local menu = popupMenu.Create()
+		table.insert(menu.items, popupMenu.CreateItem("New", function(sender)  end))
+
+		return menu
+	end
+
+
+	--fileListView.onRefresh = function(self)
+	--	if self.firstRefresh then
+	--		self:refreshList()
+	--		self.firstRefresh = false
+	--	end
+	--end
+
+
+	return fileListView
+end

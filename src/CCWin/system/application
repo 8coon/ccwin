@@ -1,0 +1,134 @@
+
+
+function Create(processInfo, _os)
+	local _canvas = processInfo.canvas
+	local _hwnd = processInfo.hwnd
+	_canvas.autoScroll = false
+
+	--return canvas
+
+	local result = {
+		hwnd = _hwnd,
+		canvas = _canvas,
+		os = _os,
+		forms = { },
+		activeForm = nil,
+		running = true,
+		info = processInfo,
+		ctrlCount = 0,
+		threads = {},
+
+
+		run = function(self)
+			while self.running do
+				if self.ctrlCount > 0 then self.ctrlCount = self.ctrlCount - 0.1 end
+				if self.ctrlCount < 0 then self.ctrlCount = 0 end
+				
+				local threadsRemoval = {}
+
+				for k, v in pairs(self.threads) do
+					if v ~= nil then
+						if coroutine.status(v) == "suspended" then
+							status, err = coroutine.resume(v)
+							if not status then
+								error(tostring(err))
+							end
+						else
+							table.insert(threadsRemoval, k)
+						end
+					end
+				end
+
+				local threads = {}
+				for k, v in pairs(threadsRemoval) do
+					self.threads[k] = nil
+				end
+				for k, v in pairs(self.threads) do
+					if v ~= nil then
+						table.insert(threads, v)
+					end
+				end
+				self.threads = threads
+				local message = self.os.getMessage(self.hwnd)
+
+				if message ~= nil then
+					if self.activeForm ~= nil then
+						if (message.msg == "key") or (message.msg == "char") then
+							if self.activeForm.keyPress ~= nil then
+								self.activeForm:keyPress(message.key, message.char)
+							end
+
+							if (message.key == 29) or (message.key == 157) then
+								self.ctrlCount = 1
+							end
+						end
+
+						if message.msg == "mouse_click" then
+							if self.activeForm.mouseClick ~= nil then
+								self.activeForm:mouseClick(message.button, message.x, message.y)
+							end
+						end
+
+						if message.msg == "mouse_drag" then
+							if self.activeForm.mouseDrag ~= nil then
+								self.activeForm:mouseDrag(message.button, message.x, message.y)
+							end
+						end
+
+						if self.activeForm.onMessage ~= nil then
+							self.activeForm:onMessage(message)
+						end
+
+						if (self.os.getActiveProcess() == self.hwnd) or (message.msg == "create") or (message.msg == "refresh") then
+							self.os.hideCaret()
+							self.activeForm:refresh()
+						end
+					end
+				end
+			end
+
+			self.os.hideCaret()
+		end,
+
+
+		addForm = function(self, form, name)
+			self.forms[name] = form
+			form.parent = self
+			form.name = name
+		end,
+
+
+		terminate = function(self)
+			self.running = false
+			self.canvas.cursorBlink = false
+			self.os.hideCaret()
+			self.os.sendMessage(self.hwnd, { msg = "refresh" })
+		end,
+
+
+		showMessage = function(self, message)
+			self.os.messageBox("message", message, self.activeForm.name, {{ caption = "OK", onClick = function(sender) self.os.hideMessageBox() end }}, "defText")
+		end,
+
+
+		isCtrlDown = function(self)
+			if self.ctrlCount > 0 then return true else return false end
+		end,
+
+
+		createThread = function(self, proc)
+			if type(proc) ~= "function" then
+				return false
+			end
+			table.insert(self.threads, coroutine.create(proc))
+			return true
+		end,
+	}
+
+	return result
+end
+
+
+function Create2()
+	return "Success."
+end

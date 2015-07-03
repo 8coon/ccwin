@@ -1,0 +1,297 @@
+function Create(_parent, name)
+	local textArea = {
+		parent = _parent,
+		left = 1,
+		top = 1, 
+		height = 16,
+		width = 24,
+		bgcolor = colors.white,
+		forecolor = colors.black,
+		focused = false,
+		visible = true,
+		canvas = nil,
+		text = "", lastText = "",
+		tab = 0,
+		editable = false,
+		--scrollBars = "both",  --"horisontal", "vertical", "both"
+		scroll = { left = 0, top = 0},
+		buffer = nil,
+		widgets = { },
+		focusedWidget = nil,
+		lastZOrder = 0,
+		cursorPos = { x = 1, y = 1, text = 1},
+
+
+		refresh = function(self)
+			self.canvas = user.CreateCanvas(self.width, self.height)
+			self.canvas:fillrect(1, 1, self.width, self.height, self.bgcolor)
+
+			if self.widgets.verticalBar == nil then
+				self.widgets.verticalBar = scrollBar.Create(self, "verticalBar")
+				self.widgets.verticalBar.step = 1
+
+				self.widgets.verticalBar.onChange = function(sender)
+					self.scroll.top = self.widgets.verticalBar.value
+				end
+			end
+
+			self.widgets.verticalBar.left = self.width
+			self.widgets.verticalBar.top = 0
+			self.widgets.verticalBar.height = self.height
+
+
+			if (self.text ~= self.lastText) or (self.buffer == nil) then
+				self.buffer = user.CreateCanvas(self.width - 1, 1)
+				self.buffer:fillrect(1, 1, 1, 1, self.bgcolor)
+				self.buffer.bgcolor = self.bgcolor
+				self.buffer.forecolor = self.forecolor
+
+				if (self.text ~= nil) and string.len(self.text) > 0 then
+					local lines = user.split(self.text, "\n")
+					local lastY = self.buffer.cursorPos.y
+
+					for i, v in ipairs(lines) do
+						self:printLine(v)
+					end
+
+					self.widgets.verticalBar.max = self.buffer.cursorPos.y - lastY - self.height + 1
+					if self.widgets.verticalBar.max < 0 then self.widgets.scrollBar.max = 0 end
+
+					self.canvas:draw(-self.scroll.left, -self.scroll.top, self.buffer)
+				end
+
+				self.lastText = self.text
+			else
+				self.canvas:draw(-self.scroll.left, -self.scroll.top, self.buffer)
+			end
+
+			self.widgets.verticalBar:refresh()
+			self.parent:getCanvas():draw(self.left - 1, self.top, self.canvas)
+
+			self.parent.parent.os.setCaretPos(self.left + self.cursorPos.x, self.top + self.cursorPos.y)
+
+			if (self.cursorPos.x < self.width - 1) and (self.cursorPos.y - self.scroll.top < self.height) and (self.focused) then
+				self.parent.parent.os.showCaret()
+			else
+				self.parent.parent.os.hideCaret()
+			end
+		end,
+
+
+		printLine = function(self, line)
+			--self.buffer:write()
+			if string.len(line) > 0 then
+				if self.buffer.cursorPos.y > 1 then
+					self.buffer.cursorPos.x = 1
+					self.buffer.cursorPos.y = self.buffer.cursorPos.y + 1
+				end
+
+
+				line = string.gsub(line, "  ", "\2\2")
+				local words = user.split(line, " ")
+
+				for i, v in ipairs(words) do
+					if self.buffer.cursorPos.x + string.len(v) + 1 > self.width then
+						self.buffer.cursorPos.x = 1 + self.tab
+						self.buffer.cursorPos.y = self.buffer.cursorPos.y + 1
+					end
+
+					if self.buffer.cursorPos.y > self.buffer.size.y then
+						local lastSize = self.buffer.size.y
+						self.buffer.size.y = self.buffer.cursorPos.y + 1--self.buffer.size.y + 1
+
+						for y = lastSize + 1, self.buffer.size.y do
+							self.buffer.data[y] = {}
+
+							for x = 1, self.buffer.size.x do
+								self.buffer.data[y][x] = {}
+
+								self.buffer.data[y][x].bgcolor = self.bgcolor
+								self.buffer.data[y][x].forecolor = self.forecolor
+								self.buffer.data[y][x].char = " "
+							end
+						end
+					end
+
+					self.buffer:write(string.gsub(v, "\2\2", "  ") .. " ")
+				end
+
+				self.buffer.cursorPos.x = self.buffer.cursorPos.x - 1
+			end
+		end,
+
+
+		getCanvas = function(self)
+			return self.canvas
+		end,
+
+
+		mouseClick = function(self, button, x, y)
+			x = x - self.left
+			y = y - self.top
+
+			if x == self.width - 1 then
+				if self.widgets.verticalBar.mouseClick ~= nil then
+					self.widgets.verticalBar:mouseClick(button, x, y)
+				end
+
+				if self.widgets.verticalBar.onMouseClick ~= nil then
+					self.widgets.verticalBar:onMouseClick(button, x, y)
+				end
+			else
+				if self.editable then
+					self.cursorPos.x = x
+					self.cursorPos.y = y + self.scroll.top
+					self.cursorPos.text = self:getTextPosFromCPos(x, y + self.scroll.top)
+				end
+			end
+		end,
+
+
+		keyPress = function(self, key, char)
+			if self.editable then
+				if key == keys.right then
+					self.cursorPos.text = self.cursorPos.text + 1
+				elseif key == keys.left then
+					self.cursorPos.text = self.cursorPos.text - 1
+				elseif key == keys.down then
+					self.cursorPos.text = self.cursorPos.text + self.width - 1
+				elseif key == keys.up then
+					self.cursorPos.text = self.cursorPos.text - self.width + 1
+				elseif key == keys.enter then
+					local textBegin = string.sub(self.text, 1, self.cursorPos.text)
+					local textEnd = string.sub(self.text, self.cursorPos.text + 1, string.len(self.text))
+
+					self.text = textBegin .. "\n" .. textEnd
+					self.cursorPos.text = self.cursorPos.text + (self.width - self.cursorPos.y) - 1
+					self.buffer = nil
+				else
+					local textBegin = string.sub(self.text, 1, self.cursorPos.text)
+					local textEnd = string.sub(self.text, self.cursorPos.text + 1, string.len(self.text))
+
+					self.text = textBegin .. char .. textEnd
+					self.cursorPos.text = self.cursorPos.text + string.len(char)
+					self.buffer = nil
+				end
+
+
+				local x, y = self:recalculateCursorPos()
+				--self.cursorPos.x = x
+				--self.cursorPos.y = y
+
+				self:refresh()
+			end
+		end,
+
+
+		recalculateCursorPos = function(self)
+
+		end,
+
+
+		getTextPosFromCPos = function(self, cx, cy)
+			local lines = user.split(self.text, "\n")
+			local index = 0
+			local lineWidths = {}
+
+			for i, line in ipairs(lines) do
+				line = string.gsub(line, "  ", "\2\2")
+				local words = user.split(line, " ")
+				index = index + 1
+				lineWidths[index] = 0
+
+				for j, word in ipairs(words) do
+					if lineWidths[index] > self.width - 1 then
+						index = index + 1
+						lineWidths[index] = 0
+					end
+				end
+			end
+
+			local textY = 0
+			for i = 1, cy do
+				textY = textY + lineWidths[i]
+			end
+
+			local textX = textY + cx
+			return textX
+		end,
+
+
+
+
+		recalculateCursorPos2 = function(self)
+			local lines = user.split(self.text, "\n")
+			local lineWidths = {}
+			local index = 0
+			local textLen = 0
+			local yPos = 0
+			local ySet = false
+
+			for i, line in ipairs(lines) do
+				line = string.gsub(line, "  ", "\2\2")
+				local words = user.split(line, " ")
+				index = index + 1
+				lineWidths[index] = 0
+
+				for j, word in ipairs(words) do
+					if lineWidths[index] > self.width - 1 then
+						index = index + 1
+						lineWidths[index] = 0
+					end
+
+					lineWidths[index] = lineWidths[index] + string.len(word) + 1
+					textLen = textLen + string.len(word) + 1
+
+					if ySet == false and textLen > self.cursorPos.text then
+						ySet = true
+						yPos = index
+					end
+				end
+			end
+
+			local y = math.floor(self.cursorPos.text / (self.width - 1))
+			local textPos = 0
+
+			for i = 1, y do
+				textPos = textPos + lineWidths[y]
+			end
+
+			--local y = math.floor(self.cursorPos.text / (self.width - 1))
+			local y = yPos
+			local cx = self.cursorPos.text - textPos
+			local cy = y + 1
+
+			--return cx, cy
+			return 1, 1
+		end,
+
+
+
+	}
+
+	_parent.widgets[name] = textArea
+	_parent.lastZOrder = _parent.lastZOrder + 1
+	textArea.zOrder = _parent.lastZOrder
+	return textArea
+end
+
+
+
+
+
+
+
+
+--[[
+										--if (absPos - string.len(word) - 1 > self.cursorPos.text) and (absPos + string.len(word) + 1 < self.cursorPos.text) then
+					--	return cx + absPos + string.len(word) + 1 - self.cursorPos.text, cy
+					--end
+
+					xoffset = xoffset + string.len(word) + 1
+					absPos = absPos + string.len(word) + 1
+
+					if xoffset > self.width - 1 then
+						xoffset = self.tab
+						yoffset = yoffset + 1
+					end]]

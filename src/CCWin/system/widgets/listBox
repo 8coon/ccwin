@@ -1,0 +1,160 @@
+
+function Create(_parent, name)
+	local listBox = panel.Create(_parent, name)
+
+	listBox.selected = {
+		bgcolor = colors.blue,
+		forecolor = colors.white,
+	}
+
+	listBox.bgcolor = colors.white
+	listBox.forecolor = colors.black
+	listBox.columns = 1
+	listBox.columnWidth = {}
+
+	listBox.checkBoxes = false
+
+	listBox.list = {}
+	listBox.selectedList = {}
+	listBox.showScroll = true
+	listBox.offset = 0
+	listBox.index = 1
+	listBox.widgets.scrollBar = scrollBar.Create(listBox, "scrollBar")
+
+	listBox.widgets.scrollBar.min = 0
+	listBox.widgets.scrollBar.max = 50
+	listBox.widgets.scrollBar.value = 0
+	listBox.widgets.scrollBar.step = 1
+
+	listBox.widgets.scrollBar.onChange = function(sender)
+		sender.parent.offset = sender.value
+	end
+
+
+	listBox.reposition = function(self, height, width)
+		self.height = height
+		self.width = width
+
+		self.widgets.scrollBar.left = width - 1
+		self.widgets.scrollBar.height = height
+	end
+
+
+	listBox.onBeforeRefresh = function(self)
+		self:reposition(self.height, self.width)
+
+		local scrollBar = self.widgets.scrollBar
+		self.widgets = { scrollBar = scrollBar }
+
+		--[[for k, v in pairs(self.widgets) do
+			if string.find(k, "item_") then
+				self.widgets[k] = nil
+			end
+		end]]
+
+		for i, v in ipairs(self.list) do
+			if self.columns == 1 then
+				local lbl = {}
+
+				if self.checkBoxes then
+					lbl = checkbox.Create(self, "item_" .. tostring(i))
+					lbl.checked = v[2] or true
+					lbl.grayed = v[3] or false
+					lbl.caption = v[1]
+					lbl.onChange = function(sender)
+						--self.list[sender.tag][2] = sender.checked
+						--sender:refresh()
+						--error("ss")
+						sender.checked = not sender.checked
+					end
+				else
+					lbl = label.Create(self, "item_" .. tostring(i))
+					lbl.caption = v
+				end
+
+				lbl.left = 1
+				lbl.top = i - self.offset
+				lbl.width = self.width - 2
+				lbl.bgcolor = self.bgcolor
+				lbl.forecolor = self.forecolor
+				lbl.tag = i
+
+				lbl.onClick = function(sender)
+					self.index = sender.tag
+					sender.bgcolor = self.selected.bgcolor
+					sender.forecolor = self.selected.forecolor
+					if self.checkBoxes and not sender.grayed then
+						sender.checked = not sender.checked
+						self.list[sender.tag][2] = sender.checked
+						sender:refresh()
+					end
+				end
+
+				if i == self.index then
+					lbl.bgcolor = self.selected.bgcolor
+					lbl.forecolor = self.selected.forecolor
+				end
+			else
+				local left = 1
+
+				for column = 1, self.columns do
+					left = left + (self.columnWidth[column - 1] or 0)
+
+					local lbl = label.Create(self, "item_" .. tostring(i) .. "_c_" .. tostring(column))
+					lbl.left = left
+					lbl.top = i - self.offset
+
+					if column == self.columns then
+						lbl.width = self.width - 1 - left
+					else
+						lbl.width = self.columnWidth[column]
+					end
+
+					lbl.bgcolor = self.bgcolor
+					lbl.forecolor = self.forecolor
+					lbl.caption = v[column]
+					lbl.tag = i
+
+					lbl.onClick = function(sender)
+						self.index = sender.tag
+
+						for c = 1, sender.parent.columns do
+							sender.parent.widgets["item_" .. tostring(i) .. "_c_" .. tostring(c)].bgcolor = self.selected.bgcolor
+							sender.parent.widgets["item_" .. tostring(i) .. "_c_" .. tostring(c)].forecolor = self.selected.forecolor
+						end
+					end
+
+					if i == self.index then
+						lbl.bgcolor = self.selected.bgcolor
+						lbl.forecolor = self.selected.forecolor
+					end
+				end
+			end
+		end
+	end
+
+
+	listBox.getMax = function(self)
+		return #self.list - self.height
+	end
+
+
+	listBox.onRefresh = function(self)
+		self.widgets.scrollBar.max = self:getMax()
+		if self.widgets.scrollBar.max < 0 then self.widgets.scrollBar.max = 0 end
+	end
+
+
+	listBox.clear = function(self)
+		self.list = {}
+		--self.index = 1
+	end
+
+
+	listBox.add = function(self, item)
+		table.insert(self.list, item)
+	end
+
+
+	return listBox
+end

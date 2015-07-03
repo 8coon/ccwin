@@ -1,0 +1,53 @@
+
+
+function Create(_parent, name)
+	local label = {
+		parent = _parent,
+		left = 1,
+		top = 1, 
+		height = 1,
+		width = 10,
+		bgcolor = colors.lightGray,
+		forecolor = colors.black,
+		caption = name,
+		focused = false,
+		visible = true,
+		align = "left",
+
+
+		refresh = function(self)
+			local canvas = self.parent:getCanvas()
+			local x = self.left
+			local y = self.top
+			local str = self.caption
+
+			if self.parent.style ~= "none" then
+				y = y + 1
+			end
+
+			canvas:fillrect(self.left, y, self.width - 1, self.height - 1, self.bgcolor)
+			
+			if string.len(str) > self.width then
+				str = string.sub(str, 1, self.width - 2) .. ".."
+			end
+
+			if self.align == "right" then
+				x = self.left + self.width - string.len(str)
+			end
+
+			if self.align == "center" then
+				x = self.left + math.floor(self.width / 2) - math.floor(string.len(str) / 2)
+			end
+
+			canvas:setCursorPos(x, y)
+			canvas.bgcolor = self.bgcolor
+			canvas.forecolor = self.forecolor
+			canvas:write(str)
+		end
+	}
+
+	_parent.widgets[name] = label
+	_parent.lastZOrder = _parent.lastZOrder + 1
+	label.zOrder = _parent.lastZOrder
+	return label
+end
