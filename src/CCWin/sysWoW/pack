@@ -12,7 +12,7 @@ end
 print(path)
 print(filename)
 print(self_extract)
-os.sleep(1000)
+
 
 function flist(base, path)
 	local l = fs.list(base .. "/" .. path)
