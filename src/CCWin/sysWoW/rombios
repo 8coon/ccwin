@@ -68,13 +68,20 @@ function os.run(env, file, ...)
 
 	local thread = coroutine.create(p)
 	local running = true
+	local status = true
+	local err = ""
 
 	while running do
 		if coroutine.status(thread) ~= "dead" then
-			coroutine.resume(thread, unpack(args))
+			status, err = coroutine.resume(thread, unpack(args))
 			coroutine.yield()
 		else
 			running = false
+			if not status then
+				term.setTextColor(colors.red)
+				print(err)
+				term.setTextColor(colors.black)
+			end
 		end
 	end
 	--p(unpack(args))
