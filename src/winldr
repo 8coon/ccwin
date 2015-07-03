@@ -1,11 +1,84 @@
-local file = fs.open("boot.ini", "r")
-local kernel = nil
 
-if file ~= nil then
-	kernel = file.readLine()
-	kernel = file.readLine()
-	kernel = string.sub(kernel, string.find(kernel, "=") + 2, string.len(kernel))
-	file.close()
+function split(pString, pPattern)
+   local Table = {}  -- NOTE: use {n = 0} in Lua-5.0
+   local fpat = "(.-)" .. pPattern
+   local last_end = 1
+   local s, e, cap = pString:find(fpat, 1)
+   while s do
+      if s ~= 1 or cap ~= "" then
+		table.insert(Table,cap)
+      end
+      last_end = e+1
+      s, e, cap = pString:find(fpat, last_end)
+   end
+   if last_end <= #pString then
+      cap = pString:sub(last_end)
+      table.insert(Table, cap)
+   end
+   return Table
+end
+
+function string.starts(String,Start)
+   return string.sub(String,1,string.len(Start))==Start
+end
+
+function string.ends(String,End)
+   return End=='' or string.sub(String,-string.len(End))==End
+end
+
+
+
+
+
+
+function ini_read(fileName)
+	local result = {}
+
+	if string.starts(fileName, "home:/") then
+		fileName = string.gsub(fileName, "home:/", "", 1)
+	end
+
+	if fs.exists(fileName) then
+		local file = fs.open(fileName, "r")
+		local data = file.readAll()
+		file.close()
+
+		data = string.gsub(data, "\r", "")
+		local lines = split(data, "\n")
+		local cat = "*"
+
+		for i, v in ipairs(lines) do
+			if (string.len(v) > 0) and (not string.starts(v, ";")) then
+				if string.starts(v, "[") and string.ends(v, "]") then
+					local catName = string.gsub(v, "%[", "")
+					catName = string.gsub(catName, "%]", "")
+					cat = catName
+				else
+					if string.find(v, "=") then
+						local values = split(v, "=")
+
+						if string.ends(values[1], " ") then
+							repeat
+								values[1] = string.sub(values[1], 1, string.len(values[1]) - 1)
+							until not (string.ends(values[1], " "))
+						end
+
+						if string.starts(values[2], " ") then
+							repeat
+								values[2] = string.sub(values[2], 2, string.len(values[2]))
+							until not (string.starts(values[2], " "))
+						end
+
+						if result[cat] == nil then result[cat] = {} end
+						if result[cat][values[1]] == nil then result[cat][values[1]] = {} end
+						result[cat][values[1]] = values[2]
+					end
+				end
+			end
+		end
+
+		return result
+	end
 end
 
 
@@ -18,15 +91,12 @@ if fs.exists(".reboot") then
 		fs.delete(".reboot")
 
 		if command == "LOADTO CRAFTOS" then
-			--shell.run("shell")
 			return 0
 		end
 	end
 else
-	--os.run({}, kernel .. "/drivers/kernel", kernel)
-	os.loadAPI(kernel .. "/system/iniFiles")
-
-	local config = iniFiles.read("boot.ini")
+	local config = ini_read("boot.ini")
+	local kernel = config.boot.path or "/"
 	local selectedIndex = 1
 	local timer = 10
 	local running = true
@@ -85,9 +155,9 @@ else
 					term.clear()
 
 					if t[selectedIndex] == "%VERSION%" then
-						shell.run(config.loader[t[selectedIndex]])
+						return 0
 					else
-						os.run({}, config.loader[t[selectedIndex]], kernel)
+						shell.run(config.loader[t[selectedIndex]] .. " \"" .. kernel .. "\"")
 					end
 				end
 			end
