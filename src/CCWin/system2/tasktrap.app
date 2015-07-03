@@ -1,5 +1,6 @@
 local app = application.Create(os.getProcessInfo(os.getCurrentProcess()), os)
 local taskbar = form.Create("Taskbar")
+taskbar.controlBox = false
 
 
 app:addForm(taskbar, "Taskbar")
