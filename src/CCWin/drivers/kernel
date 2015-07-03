@@ -1346,7 +1346,7 @@ function Main()
 
 			if ACTIVE_PROCESS > 0 then
 				--processes[ACTIVE_PROCESS].fullenv.legacyEnv.term.redraw()
-				processes[ACTIVE_PROCESS].fullenv.legacyEnv.term.restoreCursor()
+				pcall(function() processes[ACTIVE_PROCESS].fullenv.legacyEnv.term.restoreCursor() end)
 			end
 
 
