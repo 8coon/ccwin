@@ -81,3 +81,5 @@ pk = pk .. "\r\n" .. [[shell.run("\"" .. path .. "/drivers/kernel" .. "\" \"" ..
 file = fs.open(output, "w")
 file.write(pk)
 file.close()
+
+fs.delete("/temp")
