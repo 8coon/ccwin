@@ -61,15 +61,19 @@ function fn(path)
 	local ps = ""
 	for i, v in ipairs(path) do
 		if not _fs.exists(ps .. "/" .. v) then
-			local ls = _fs.list(ps)
-			local real = v
-			for k, sv in pairs(ls) do
-				if string.lower(v) == string.lower(sv) then
-					real = sv
-					break
+			if _fs.exists(ps) then
+				local ls = _fs.list(ps)
+				local real = v
+				for k, sv in pairs(ls) do
+					if string.lower(v) == string.lower(sv) then
+						real = sv
+						break
+					end
 				end
+				ps = ps .. "/" .. real
+			else
+				ps = ps .. "/" .. v
 			end
-			ps = ps .. "/" .. real
 		else
 			ps = ps .. "/" .. v
 		end
