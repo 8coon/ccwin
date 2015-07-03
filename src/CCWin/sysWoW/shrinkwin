@@ -1,0 +1,75 @@
+local args = {...}
+local run = args[1]
+local output = args[2]
+local win = os.getSystemPath()
+
+
+function writefile(name, contents)
+	file = fs.open(name, "w")
+	file.write(contents)
+	file.close()
+end
+
+
+if fs.exists("/temp") then
+	fs.delete("/temp")
+end
+
+fs.makeDir("/temp")
+
+fs.makeDir("/temp/drivers/")
+fs.copy(win .. "/drivers/kernel", "/temp/drivers/kernel")
+fs.copy(win .. "/drivers/0fs.app", "/temp/drivers/0fs.app")
+fs.copy(win .. "/drivers/http.app", "/temp/drivers/http.app")
+
+fs.makeDir("/temp/drivers/etc")
+fs.copy(win .. "/drivers/etc/hosts", "/temp/drivers/etc/hosts")
+
+fs.copy(win .. "system", "/temp/system")
+
+fs.makeDir("/temp/system2")
+fs.copy(win .. "/system2/shldr.app", "/temp/system2/shldr.app")
+fs.copy(win .. "/system2/procman.app", "/temp/system2/procman.app")
+fs.copy(win .. "/system2/ncvm.app", "/temp/system2/ncvm.app")
+
+fs.makeDir("/temp/sysWoW")
+fs.copy(win .. "/sysWoW/rombios", "/temp/sysWoW/rombios")
+fs.copy(win .. "/sysWoW/pack", "/temp/sysWoW/pack")
+
+fs.copy(run, "/temp/run")
+
+
+winini = [[
+[extensions]
+[system]
+timer = 0.05
+[installed]
+[desktop]
+bgcolor = 32768
+[uninstall]
+[autorun]]
+winini = winini .. "\r\n1 = " .. "home:/temp/run/startup.app\r\n"
+
+writefile("/temp/system2/win.ini", winini)
+
+
+startup = [[
+shell.run("/temp/drivers/kernel /temp -min")
+]]
+
+writefile("/temp/startup", startup)
+
+local cmd = "/" .. win .. "sysWoW/pack /temp/ \"" .. output .. "\" -se"
+shell.run(cmd)
+
+
+local file = fs.open(output, "r")
+local pk = file.readAll()
+file.close()
+
+pk = string.sub(pk, 1, string.len(pk) - 20)
+pk = pk .. "\r\n" .. [[shell.run("\"" .. path .. "/drivers/kernel" .. "\" \"" .. path .. "\"")]]
+
+file = fs.open(output, "w")
+file.write(pk)
+file.close()
