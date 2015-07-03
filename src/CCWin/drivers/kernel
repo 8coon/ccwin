@@ -29,6 +29,8 @@ local CARETCOLOR = colors.black
 local _APIS = {}
 
 local legacyShell = shell
+local kiArgs = {...}
+local mini = kiArgs[2] == "-min"
 
 
 
@@ -1314,6 +1316,10 @@ function Main()
 					end
 					--term.setCursorPos(processes[ACTIVE_PROCESS].canvas.cursorPos.x, processes[ACTIVE_PROCESS].canvas.cursorPos.y)
 				end
+			else
+				if mini then
+					error()
+				end
 			end
 
 			if lastMenu ~= nil then
@@ -1323,9 +1329,13 @@ function Main()
 			drawTaskbar()
 
 			if processes[TASKBAR_PROCESS] ~= nil and processes[TASKBAR_PROCESS].message ~= nil then
-				processes[ACTIVE_PROCESS].canvas.effect = user.CreateEffect_Shadow()
+				processes[TASKBAR_PROCESS].canvas.effect = user.CreateEffect_Shadow()
 				--screen:draw(0, screen.size.y - processes[TASKBAR_PROCESS].canvas.size.y - 1, processes[TASKBAR_PROCESS].canvas, true)
 				drawMessage(processes[TASKBAR_PROCESS].message)
+			end
+
+			if processes[TASKBAR_PROCESS] == nil then
+				screen:fillrect(0, screen.size.y, screen.size.x, 1, colors.black)
 			end
 
 			screen:render(0, 0)
