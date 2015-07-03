@@ -68,9 +68,9 @@ end
 
 
 local function log(msg)
-	local f = fs.open("/mount_log.txt", "a")
-	f.write(msg .. "\r\n")
-	f.close()
+	--local f = fs.open("/mount_log.txt", "a")
+	--f.write(msg .. "\r\n")
+	--f.close()
 end
 
 
