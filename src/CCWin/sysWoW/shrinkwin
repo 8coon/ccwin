@@ -26,6 +26,7 @@ fs.makeDir("/temp/drivers/etc")
 fs.copy(win .. "/drivers/etc/hosts", "/temp/drivers/etc/hosts")
 
 fs.copy(win .. "system", "/temp/system")
+fs.copy(win .. "locale", "/temp/locale")
 
 fs.makeDir("/temp/system2")
 fs.copy(win .. "/system2/shldr.app", "/temp/system2/shldr.app")
