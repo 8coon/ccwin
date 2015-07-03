@@ -46,8 +46,8 @@ for k, v in pairs(files) do
 			file.close()
 
 			table.insert(data, "table.insert(names, \"" .. v .. "\")\n")
-			s = string.gsub(s, "%[%[", "\\%[\\%[")
-			s = string.gsub(s, "%]%]", "\\%]\\%]")
+			s = string.gsub(s, "%[%[", "\\%[%-\\%[%-")
+			s = string.gsub(s, "%]%]", "\\%]%-\\%]%-")
 			table.insert(data, "table.insert(values, [[" .. s .. "]])\n")
 		end
 	end)
@@ -87,8 +87,8 @@ for i = 1, #names do
 		print("Unpacking " .. names[i] .. "...")
 		fs.makeDir(path .. "/" .. p)
 		local file = fs.open(path .. "/" .. names[i], "w")
-		values[i] = string.gsub(values[i], "\\%[\\%[", "%[%[")
-		values[i] = string.gsub(values[i], "\\%]\\%]", "%]%]")
+		values[i] = string.gsub(values[i], "\\%[%-\\%[%-", "%[%[")
+		values[i] = string.gsub(values[i], "\\%]%-\\%]%-", "%]%]")
 		file.write(values[i])
 		file.close()
 	end)
