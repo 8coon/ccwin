@@ -1,5 +1,5 @@
 if _EMULATED then
-	shell.run("cd \"" .. os.getSystemPath() .. "/userdata/\"")
+	shell.run("cd \"" .. os.getSystemPath() .. "/sysWoW/\"")
 	if _WHAT_TO_RUN ~= nil then
 		shell.run(_WHAT_TO_RUN)
 		os.shutdown()
