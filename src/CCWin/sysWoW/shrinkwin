@@ -25,14 +25,16 @@ fs.copy(win .. "/drivers/http.app", "/temp/drivers/http.app")
 fs.makeDir("/temp/drivers/etc")
 fs.copy(win .. "/drivers/etc/hosts", "/temp/drivers/etc/hosts")
 
-fs.copy(win .. "system", "/temp/system")
-fs.copy(win .. "locale", "/temp/locale")
+fs.copy(win .. "/system", "/temp/system")
+fs.copy(win .. "/locale", "/temp/locale")
 
 fs.makeDir("/temp/system2")
 fs.copy(win .. "/system2/shldr.app", "/temp/system2/shldr.app")
-fs.copy(win .. "/system2/procman.app", "/temp/system2/proctrap.app")
+fs.copy(win .. "/system2/proctrap.app", "/temp/system2/procman.app")
 fs.copy(win .. "/system2/ncvm.app", "/temp/system2/ncvm.app")
 fs.copy(win .. "/system2/winver.app", "/temp/system2/winver.app")
+fs.copy(win .. "/system2/tasktrap.app", "/temp/system2/taskbar.app")
+fs.copy(win .. "/system2/tasktrap.app", "/temp/system2/desktop.app")
 fs.copy(win .. "/system2/app.pic", "/temp/system2/app.pic")
 fs.copy(win .. "/system2/folder.pic", "/temp/system2/folder.pic")
 fs.copy(win .. "/system2/ini.pic", "/temp/system2/ini.pic")
@@ -45,7 +47,8 @@ fs.makeDir("/temp/sysWoW")
 fs.copy(win .. "/sysWoW/rombios", "/temp/sysWoW/rombios")
 fs.copy(win .. "/sysWoW/pack", "/temp/sysWoW/pack")
 
-fs.copy(run, "/temp/run")
+fs.copy(run, "/temp/system2/run")
+fs.copy("startup", "/temp/startup")
 
 
 winini = [[
@@ -57,16 +60,10 @@ timer = 0.05
 bgcolor = 32768
 [uninstall]
 [autorun]] .. "]"
-winini = winini .. "\r\n1 = " .. "\"home:/temp/run/startup.app\"\r\n"
+winini = winini .. "\r\n1 = " .. "\"run/startup.app\"\r\n"
 
 writefile("/temp/system2/win.ini", winini)
 
-
-startup = [[
-shell.run("/temp/drivers/kernel /temp -min")
-]]
-
-writefile("/temp/startup", startup)
 
 local cmd = "/" .. win .. "sysWoW/pack /temp/ \"" .. output .. "\" -se"
 shell.run(cmd)
@@ -77,6 +74,8 @@ local pk = file.readAll()
 file.close()
 
 pk = string.sub(pk, 1, string.len(pk) - 20)
+pk = pk .. "\r\n" .. [[if fs.exists("startup") then fs.copy("startup", "startup.old") end]]
+pk = pk .. "\r\n" .. [[fs.copy(path .. "/startup", "startup")]]
 pk = pk .. "\r\n" .. [[shell.run("\"" .. path .. "/drivers/kernel" .. "\" \"" .. path .. "\"")]]
 
 file = fs.open(output, "w")
