@@ -1329,7 +1329,7 @@ function Main()
 			drawTaskbar()
 
 			if processes[TASKBAR_PROCESS] ~= nil and processes[TASKBAR_PROCESS].message ~= nil then
-				processes[TASKBAR_PROCESS].canvas.effect = user.CreateEffect_Shadow()
+				--processes[ACTIVE_PROCESS].canvas.effect = user.CreateEffect_Shadow()
 				--screen:draw(0, screen.size.y - processes[TASKBAR_PROCESS].canvas.size.y - 1, processes[TASKBAR_PROCESS].canvas, true)
 				drawMessage(processes[TASKBAR_PROCESS].message)
 			end
