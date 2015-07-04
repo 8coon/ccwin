@@ -65,7 +65,8 @@ winini = winini .. "\r\n1 = " .. "\"run/startup.app\"\r\n"
 writefile("/temp/system2/win.ini", winini)
 
 
-local cmd = "/" .. win .. "sysWoW/pack /temp/ \"" .. output .. "\" -se"
+local cmd = "\"" .. win .. "/sysWoW/pack\" /temp/ \"" .. output .. "\" -se"
+print(cmd)
 shell.run(cmd)
 
 
