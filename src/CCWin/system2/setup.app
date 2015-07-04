@@ -1,86 +1,881 @@
-local args = {...}
-local run = args[1]
-local output = args[2]
-local win = os.getSystemPath()
+local app = application.Create(os.getProcessInfo(os.getCurrentProcess()), os)
+local desktop = form.Create("Setup Wizard")
 
 
-function writefile(name, contents)
-	file = fs.open(name, "w")
-	file.write(contents)
+local lang = "EN-US"
+local locale = iniFiles.read(os.getSystemPath() .. "/locale/" .. lang .. "/setup.ini").locale
+local installing = false
+local uninstalling = false
+
+local setup = nil
+if params[2] == nil then
+	params[2] = "/w/system2/run/setup.wpk"
+	if not fs.exists(params[2]) then
+		error(locale["30"])
+	end
+end
+
+fs.delete("/temp/")
+local handler = os.shell.run("ncvm \"" .. params[2] .. "\" \"/Temp/\"")
+local running = true
+
+while running do
+	coroutine.yield()
+	local ls = os.getValidHWNDList()
+	local found = false
+	for k, v in pairs(ls) do
+		if v == handler then
+			found = true
+		end
+	end
+
+	if not found then
+		running = false
+		os.setActiveProcess(hwnd)
+	end
+end
+
+setup = iniFiles.read("home:/Temp/setup.ini")
+
+
+setup.components.show = "false"
+
+if params[3] == "-uninstall" then
+	uninstalling = true
+	setup.license.show = "false"
+	setup.path.show = "false"
+	setup.components.show = "false"
+end
+
+lastSystemPath = os.getSystemPath
+os.getSystemPath = function()
+	if setup.application.os == "true" then
+		return setup.application.path
+	else
+		return lastSystemPath()
+	end
+end
+
+
+
+local function expandVars(s, p)
+	local function getProgramPath()
+		return "home:/Programs/"
+	end
+
+	local vars = {
+		["%%APPNAME%%"]          = setup.application.name,
+		["%%VERSION%%"]          = setup.application.version,
+		["%%COMPANY%%"]          = setup.application.company,
+		["%%PROGRAM%%"]          = getProgramPath(),
+		["%%BLINDLY%%"]          = " ",
+		["%%DESKTOP%%"]          = os.getSystemPath() .. "/userdata/Desktop/",
+		["%%DOCUMENTS%%"]        = os.getSystemPath() .. "/userdata/Documents/",
+		["%%PROGRAM_GROUPS%%"]   = os.getSystemPath() .. "/userdata/ProgramGroups/",
+		["%%PROGRAMS%%"]         = os.getSystemPath() .. "/userdata/ProgramGroups/Programs/",
+		["%%SETTINGS%%"]         = os.getSystemPath() .. "/userdata/ProgramGroups/Settings/",
+		["%%SYSTEM%%"]           = os.getSystemPath(),
+		["%%DRIVERS%%"]          = os.getSystemPath() .. "/drivers/",
+		["%%SYSTEM_MODULES%%"]   = os.getSystemPath() .. "/system/",
+		["%%SYSTEM_FILES%%"]     = os.getSystemPath() .. "/system2/",
+		["%%CRAFTOS%%"]          = os.getSystemPath() .. "/sysWoW/",
+	}
+
+	if not p then vars["%%PATH%%"] = expandVars(setup.application.path, true) end
+	if setup.license.blindly == "true" then vars["%%BLINDLY%%"] = " blindly " end
+
+	for k, v in pairs(vars) do
+		s = string.gsub(s, k, v)
+	end
+
+	return s
+end
+	
+
+
+
+local frmStart = form.Create("Welcome")
+app:addForm(frmStart, "Welcome")
+if setup.application.os == "true" then
+	frmStart.controlBox = false
+end
+
+local lbl1 = widgets.Label.Create(frmStart, "lbl1")
+lbl1.left = 2
+lbl1.top = 7
+lbl1.caption = expandVars(locale["3"])
+lbl1.width = app.canvas.size.x - 2
+lbl1.height = 1
+
+local lbl2 = widgets.Label.Create(frmStart, "lbl2")
+lbl2.left = 2
+lbl2.top = 9
+lbl2.caption = expandVars(locale["4"])
+lbl2.width = app.canvas.size.x - 2
+lbl2.height = 1
+
+local lbl3 = widgets.Label.Create(frmStart, "lbl3")
+lbl3.left = 2
+lbl3.top = 10
+lbl3.caption = expandVars(locale["5"])
+lbl3.width = app.canvas.size.x - 2
+lbl3.height = 1
+
+local lbl4 = widgets.Label.Create(frmStart, "lbl4")
+lbl4.left = 2
+lbl4.top = 12
+lbl4.caption = expandVars(locale["6"])
+lbl4.width = app.canvas.size.x - 2
+lbl4.height = 1
+
+local picHeader1 = widgets.PaintBox.Create(frmStart, "picHeader")
+picHeader1.left = 0
+picHeader1.top = 1
+picHeader1.width = app.canvas.size.x + 1
+picHeader1.height = 5
+picHeader1:refresh()
+if fs.exists("/Temp/" .. setup["application"].header) then
+	local canvas = user.loadCanvas("home:/Temp/" .. setup.application.header):scale(picHeader1.width, picHeader1.height)
+	picHeader1.canvas:draw(0, 0, canvas)
+end
+
+local btnNext = widgets.Button.Create(frmStart, "btnNext")
+btnNext.width = 9
+btnNext.left = app.canvas.size.x - btnNext.width
+btnNext.top = app.canvas.size.y - 2
+btnNext.caption = expandVars(locale["1"])
+
+local btnBack = widgets.Button.Create(frmStart, "btnBack")
+btnBack.width = 9
+btnBack.left = 2
+btnBack.top = app.canvas.size.y - 2
+btnBack.caption = expandVars(locale["7"])
+
+btnBack.onClick = function(sender)
+	os.messageBox("message", expandVars(locale["8"]), expandVars(locale["9"]), 
+		{ 
+			{caption = expandVars(locale["11"]), 
+				onClick = function(sender)
+					os.hideMessageBox()
+				end
+			},
+			{caption = expandVars(locale["10"]), 
+				onClick = function(sender)
+					app:terminate()
+				end
+			},
+		}, "defText")
+end
+
+local frmLicense = form.Create("License Agreement")
+app:addForm(frmLicense, "License Agreement")
+if setup.application.os == "true" then
+	frmLicense.controlBox = false
+end
+
+local frmPath = form.Create("Installation Path")
+app:addForm(frmPath, "Installation Path")
+if setup.application.os == "true" then
+	frmPath.controlBox = false
+end
+
+local frmComponents = form.Create("Installation Components")
+app:addForm(frmComponents, "Installation Components")
+if setup.application.os == "true" then
+	frmComponents.controlBox = false
+end
+
+local frmReady = form.Create("Ready")
+app:addForm(frmReady, "Ready")
+if setup.application.os == "true" then
+	frmReady.controlBox = false
+end
+
+local frmProgress = form.Create("Installation in progress...")
+app:addForm(frmProgress, "Installation in progress...")
+if setup.application.os == "true" then
+	frmProgress.controlBox = false
+end
+
+local frmSuccess = form.Create("Installation Complete")
+app:addForm(frmSuccess, "Installation Complete")
+if setup.application.os == "true" then
+	frmSuccess.controlBox = false
+end
+
+local lblStatus = widgets.Label.Create(frmProgress, "lblStatus")
+lblStatus.left = 2
+lblStatus.top = 12
+lblStatus.caption = ""
+lblStatus.width = app.canvas.size.x - 2
+lblStatus.height = 1
+
+local pbProgress = widgets.ProgressBar.Create(frmProgress, "pbProgress")
+pbProgress.left = 2
+pbProgress.top = 10
+pbProgress.caption = ""
+pbProgress.width = app.canvas.size.x - 2
+pbProgress.height = 1
+
+btnNext.onClick = function(sender)
+	if uninstalling then
+		frmProgress:show()
+
+		app:createThread(function()
+			local function uninstallPackage(name)
+				local function countFiles(path)
+					local result = 0
+					local ls = fs.list(tostring(string.gsub(path, "home:/", "")))
+					pbProgress.max = #ls
+					pbProgress.position = 0
+					coroutine.yield()
+
+					for i, v in ipairs(ls) do
+						if (v ~= ".") and (v ~= "..") then
+							if fs.isDir(tostring(string.gsub(path, "home:/", "") .. "/" .. v)) then
+								result = result + countFiles(path .. "/" .. v)
+							else
+								result = result + 1
+								pbProgress.position = pbProgress.position + 1
+								coroutine.yield()
+							end
+						end
+					end
+					return result
+				end
+
+				local function copyFiles(parent, path)
+					local fullPath = tostring(string.gsub(parent .. "/" .. path, "home:/", ""))
+					local ls = fs.list(fullPath)
+					for k, v in pairs(ls) do
+						if fs.isDir(fullPath .. "/" .. v) then
+							copyFiles(parent, path .. "/" .. v)
+						else
+							local copyTo = tostring(string.gsub(expandVars("%PATH%"), "home:/", "/"))
+							fs.makeDir(copyTo .. "/" .. path)
+
+							local status, message = pcall(function()
+								fs.delete(copyTo .. "/" .. path .. "/" .. v)
+							end)
+
+							pbProgress.position = pbProgress.position + 1
+							coroutine.yield()
+						end
+					end
+				end
+
+				lblStatus.caption = expandVars(locale["31"])
+				
+				local package = iniFiles.read("home:/Temp/" .. name .. "/package.ini")
+				local total = countFiles("home:/Temp/" .. name .. "/data/")
+
+				pbProgress.max = total
+				pbProgress.position = 0
+				lblStatus.caption = ""
+				coroutine.yield()
+
+				lblStatus.caption = expandVars(locale["32"])
+				copyFiles("home:/Temp/" .. name .. "/data", "/")
+				lblStatus.caption = ""
+				coroutine.yield()
+
+				pbProgress.position = 0
+				lblStatus.caption = expandVars(locale["32"])
+				coroutine.yield()
+
+				local shortcuts = iniFiles.read("home:/Temp/" .. name .. "/shortcuts.ini")
+				pbProgress.max = 0
+				for k, v in pairs(shortcuts) do
+					pbProgress.max = pbProgress.max + 1
+				end
+
+				for k, v in pairs(shortcuts) do
+					fs.delete(expandVars(v.location))
+				end
+
+			end
+
+			installing = true
+			uninstallPackage(setup.components.default)
+
+			pbProgress.position = 0
+			lblStatus.caption = ""
+			coroutine.yield()
+
+			for k, v in pairs(setup.extentions) do
+				os.setRegistryKeyValue("extensions", k, "")
+			end
+
+			os.setRegistryKeyValue("installed", setup.application.name .. " " .. setup.application.version, nil)
+
+			frmSuccess:show()
+			coroutine.yield()
+			installing = false
+		end)
+	else
+		if setup.license.show == "true" then
+			frmLicense:show()
+		else
+			if setup.path.show == "true" then
+				frmPath:show()
+			else
+				if setup.components.show == "true" then
+					frmComponents:show()
+				else
+					frmReady:show()
+				end
+			end
+		end
+	end
+end
+
+
+
+
+local txtLicense = widgets.TextArea.Create(frmLicense, "txtLicense", widgets)
+txtLicense.left = 2
+txtLicense.top = 2
+txtLicense.height = app.canvas.size.y - 7
+txtLicense.width = app.canvas.size.x - 2
+txtLicense.text = ""
+
+if fs.exists("/Temp/" .. setup.license.file) then
+	local file = fs.open("/Temp/" .. setup.license.file, "r")
+	txtLicense.text = file.readAll()
 	file.close()
 end
 
+local chkAccept = widgets.CheckBox.Create(frmLicense, "chkAccept")
+chkAccept.left = 2
+chkAccept.top = txtLicense.height + 3
+chkAccept.width = app.canvas.size.x - 2
+chkAccept.caption = expandVars(locale["12"])
+chkAccept.checked = false
 
-if fs.exists("/temp") then
-	fs.delete("/temp")
+local btnNext = widgets.Button.Create(frmLicense, "btnNext")
+btnNext.width = 9
+btnNext.left = app.canvas.size.x - btnNext.width
+btnNext.top = app.canvas.size.y - 2
+btnNext.caption = expandVars(locale["1"])
+
+local btnBack = widgets.Button.Create(frmLicense, "btnBack")
+btnBack.width = 9
+btnBack.left = 2
+btnBack.top = app.canvas.size.y - 2
+btnBack.caption = expandVars(locale["2"])
+
+btnBack.onClick = function(sender)
+	frmStart:show()
 end
 
-fs.makeDir("/temp")
-
-fs.makeDir("/temp/drivers/")
-fs.copy(win .. "/drivers/kernel", "/temp/drivers/kernel")
-fs.copy(win .. "/drivers/0fs.app", "/temp/drivers/0fs.app")
-fs.copy(win .. "/drivers/http.app", "/temp/drivers/http.app")
-
-fs.makeDir("/temp/drivers/etc")
-fs.copy(win .. "/drivers/etc/hosts", "/temp/drivers/etc/hosts")
-
-fs.copy(win .. "/system", "/temp/system")
-fs.copy(win .. "/locale", "/temp/locale")
-
-fs.makeDir("/temp/system2")
-fs.copy(win .. "/system2/shldr.app", "/temp/system2/shldr.app")
-fs.copy(win .. "/system2/proctrap.app", "/temp/system2/procman.app")
-fs.copy(win .. "/system2/ncvm.app", "/temp/system2/ncvm.app")
-fs.copy(win .. "/system2/winver.app", "/temp/system2/winver.app")
-fs.copy(win .. "/system2/tasktrap.app", "/temp/system2/taskbar.app")
-fs.copy(win .. "/system2/tasktrap.app", "/temp/system2/desktop.app")
-fs.copy(win .. "/system2/app.pic", "/temp/system2/app.pic")
-fs.copy(win .. "/system2/folder.pic", "/temp/system2/folder.pic")
-fs.copy(win .. "/system2/ini.pic", "/temp/system2/ini.pic")
-fs.copy(win .. "/system2/lua.pic", "/temp/system2/lua.pic")
-fs.copy(win .. "/system2/pic.pic", "/temp/system2/pic.pic")
-fs.copy(win .. "/system2/txt.pic", "/temp/system2/txt.pic")
-fs.copy(win .. "/system2/unknown.pic", "/temp/system2/unknown.pic")
-
-fs.makeDir("/temp/sysWoW")
-fs.copy(win .. "/sysWoW/rombios", "/temp/sysWoW/rombios")
-fs.copy(win .. "/sysWoW/pack", "/temp/sysWoW/pack")
-
-fs.copy(run, "/temp/system2/run")
-fs.copy("startup", "/temp/startup")
+btnNext.onClick = function(sender)
+	if chkAccept.checked then
+		if setup.path.show == "true" then
+			frmPath:show()
+		else
+			if setup.components.show == "true" then
+				frmComponents:show()
+			else
+				frmReady:show()
+			end
+		end
+	else
+		os.messageBox("message", expandVars(locale["13"]), expandVars(locale["14"]), 
+			{ 
+				{caption = expandVars(locale["15"]), 
+					onClick = function(sender)
+						os.hideMessageBox()
+					end
+				},
+			}, "defText")
+	end
+end
 
 
-winini = [[
-[extensions]
-[system]
-timer = 0.05
-[installed]
-[desktop]
-bgcolor = 32768
-[uninstall]
-[autorun]] .. "]"
-winini = winini .. "\r\n1 = " .. "\"run/startup.app\"\r\n"
 
-writefile("/temp/system2/win.ini", winini)
+local openDialog = widgets.dialogs.OpenDialog.Create(frmPath, "OpenDialog")
+openDialog.dirOnly = true
+
+openDialog.onExecute = function(sender)
+	sender.parent.widgets.txtPath.text = sender.fileName or sender.parent.widgets.txtPath.text
+	os.sendMessage(hwnd, {msg = "refresh"})
+end
+
+local picHeader1 = widgets.PaintBox.Create(frmPath, "picHeader")
+picHeader1.left = 0
+picHeader1.top = 1
+picHeader1.width = app.canvas.size.x + 1
+picHeader1.height = 5
+picHeader1:refresh()
+if fs.exists("/Temp/" .. setup["application"].header) then
+	local canvas = user.loadCanvas("home:/Temp/" .. setup.application.header):scale(picHeader1.width, picHeader1.height)
+	picHeader1.canvas:draw(0, 0, canvas)
+end
+
+local lbl1 = widgets.Label.Create(frmPath, "lbl1")
+lbl1.left = 2
+lbl1.top = 9
+lbl1.caption = expandVars(locale["16"])
+lbl1.width = app.canvas.size.x - 2
+lbl1.height = 1
+
+local txtPath = widgets.Edit.Create(frmPath, "txtPath")
+txtPath.width = app.canvas.size.x - 6
+txtPath.left = 2
+txtPath.top = 11
+txtPath.text = expandVars("%PATH%")
+
+local btnBrowse = widgets.Button.Create(frmPath, "btnBrowse")
+btnBrowse.width = 2
+btnBrowse.left = app.canvas.size.x - btnBrowse.width
+btnBrowse.top = 11
+btnBrowse.forecolor2 = btnBrowse.forecolor
+btnBrowse.caption = ".."
+btnBrowse.onClick = function(sender)
+	openDialog:execute()
+end
+
+if setup.path.editable == "false" then
+	btnBrowse.visible = false
+	txtPath.editable = false
+	txtPath.width = txtPath.width + 4
+end
+
+local btnNext = widgets.Button.Create(frmPath, "btnNext")
+btnNext.width = 9
+btnNext.left = app.canvas.size.x - btnNext.width
+btnNext.top = app.canvas.size.y - 2
+btnNext.caption = expandVars(locale["1"])
+
+local btnBack = widgets.Button.Create(frmPath, "btnBack")
+btnBack.width = 9
+btnBack.left = 2
+btnBack.top = app.canvas.size.y - 2
+btnBack.caption = expandVars(locale["2"])
+
+btnBack.onClick = function(sender)
+	if setup.license.show == "true" then
+		frmLicense:show()
+	else
+		frmStart:show()
+	end
+end
+
+btnNext.onClick = function(sender)
+	if setup.components.show == "true" then
+		frmComponents:show()
+	else
+		frmReady:show()
+	end
+end
 
 
-local cmd = "\"" .. win .. "/sysWoW/pack\" /temp/ \"" .. output .. "\" -se"
-print(cmd)
-shell.run(cmd)
 
 
-local file = fs.open(output, "r")
-local pk = file.readAll()
-file.close()
+local picHeader1 = widgets.PaintBox.Create(frmComponents, "picHeader")
+picHeader1.left = 0
+picHeader1.top = 1
+picHeader1.width = app.canvas.size.x + 1
+picHeader1.height = 5
+picHeader1:refresh()
+if fs.exists("/Temp/" .. setup["application"].header) then
+	local canvas = user.loadCanvas("home:/Temp/" .. setup.application.header):scale(picHeader1.width, picHeader1.height)
+	picHeader1.canvas:draw(0, 0, canvas)
+end
 
-pk = string.sub(pk, 1, string.len(pk) - 20)
-pk = pk .. "\r\n" .. [[if fs.exists("startup") then fs.copy("startup", "startup.old") end]]
-pk = pk .. "\r\n" .. [[fs.copy(path .. "/startup", "startup")]]
-pk = pk .. "\r\n" .. [[shell.run("\"" .. path .. "/drivers/kernel" .. "\" \"" .. path .. "\"")]]
+local lstComponents = widgets.ListBox.Create(frmComponents, "lstComponents", widgets)
+lstComponents.left = 0
+lstComponents.top = 7
+lstComponents.height = app.canvas.size.y - 14
+lstComponents.width = app.canvas.size.x + 1
+lstComponents.checkBoxes = true
 
-file = fs.open(output, "w")
-file.write(pk)
-file.close()
 
-fs.delete("/temp")
+
+
+local picHeader1 = widgets.PaintBox.Create(frmReady, "picHeader")
+picHeader1.left = 0
+picHeader1.top = 1
+picHeader1.width = app.canvas.size.x + 1
+picHeader1.height = 5
+picHeader1:refresh()
+if fs.exists("/Temp/" .. setup["application"].header) then
+	local canvas = user.loadCanvas("home:/Temp/" .. setup.application.header):scale(picHeader1.width, picHeader1.height)
+	picHeader1.canvas:draw(0, 0, canvas)
+end
+
+local lbl1 = widgets.Label.Create(frmReady, "lbl1")
+lbl1.left = 2
+lbl1.top = 7
+lbl1.caption = expandVars(locale["17"])
+lbl1.width = app.canvas.size.x - 2
+lbl1.height = 1
+
+local lbl2 = widgets.Label.Create(frmReady, "lbl2")
+lbl2.left = 2
+lbl2.top = 9
+lbl2.caption = expandVars(locale["19"])
+lbl2.width = app.canvas.size.x - 2
+lbl2.height = 1
+
+local lbl3 = widgets.Label.Create(frmReady, "lbl3")
+lbl3.left = 2
+lbl3.top = 10
+lbl3.caption = expandVars(locale["20"])
+lbl3.width = app.canvas.size.x - 2
+lbl3.height = 1
+
+local lbl4 = widgets.Label.Create(frmReady, "lbl4")
+lbl4.left = 2
+lbl4.top = 12
+lbl4.caption = expandVars(locale["18"])
+lbl4.width = app.canvas.size.x - 2
+lbl4.height = 1
+
+
+--frmProgress.controlBox = false
+
+local btnNext = widgets.Button.Create(frmReady, "btnNext")
+btnNext.width = 9
+btnNext.left = app.canvas.size.x - btnNext.width
+btnNext.top = app.canvas.size.y - 2
+btnNext.caption = expandVars(locale["1"])
+
+local btnBack = widgets.Button.Create(frmReady, "btnBack")
+btnBack.width = 9
+btnBack.left = 2
+btnBack.top = app.canvas.size.y - 2
+btnBack.caption = expandVars(locale["2"])
+
+btnBack.onClick = function(sender)
+	if setup.components.show == "true" then
+		frmComponents:show()
+	else
+		if setup.path.show == "true" then
+			frmPath:show()
+		else
+			if setup.license.show == "true" then
+				frmLicense:show()
+			else
+				frmStart:show()
+			end
+		end
+	end
+end
+
+
+local picHeader1 = widgets.PaintBox.Create(frmProgress, "picHeader")
+picHeader1.left = 0
+picHeader1.top = 1
+picHeader1.width = app.canvas.size.x + 1
+picHeader1.height = 5
+picHeader1:refresh()
+if fs.exists("/Temp/" .. setup["application"].header) then
+	local canvas = user.loadCanvas("home:/Temp/" .. setup.application.header):scale(picHeader1.width, picHeader1.height)
+	picHeader1.canvas:draw(0, 0, canvas)
+end
+
+
+
+
+
+
+
+
+
+btnNext.onClick = function(sender)
+	frmProgress:show()
+
+	app:createThread(function()
+		local function installPackage(name)
+			local function countFiles(path)
+				local result = 0
+				local ls = fs.list(tostring(string.gsub(path, "home:/", "")))
+				pbProgress.max = #ls
+				pbProgress.position = 0
+				coroutine.yield()
+
+				for i, v in ipairs(ls) do
+					if (v ~= ".") and (v ~= "..") then
+						if fs.isDir(tostring(string.gsub(path, "home:/", "") .. "/" .. v)) then
+							result = result + countFiles(path .. "/" .. v)
+						else
+							result = result + 1
+							pbProgress.position = pbProgress.position + 1
+							coroutine.yield()
+						end
+					end
+				end
+				return result
+			end
+
+			local function copyFiles(parent, path)
+				local fullPath = tostring(string.gsub(parent .. "/" .. path, "home:/", ""))
+				local ls = fs.list(fullPath)
+				for k, v in pairs(ls) do
+					if fs.isDir(fullPath .. "/" .. v) then
+						copyFiles(parent, path .. "/" .. v)
+					else
+						local copyTo = tostring(string.gsub(expandVars("%PATH%"), "home:/", "/"))
+						fs.makeDir(copyTo .. "/" .. path)
+
+						local status, message = pcall(function()
+							fs.copy(fullPath .. "/" .. v, copyTo .. "/" .. path .. "/" .. v)
+						end)
+						if not status then
+							if string.find(message, "exist") and setup.application.override == "true" then
+								fs.delete(copyTo .. "/" .. path .. "/" .. v)
+								fs.copy(fullPath .. "/" .. v, copyTo .. "/" .. path .. "/" .. v)
+							end
+						end
+
+						pbProgress.position = pbProgress.position + 1
+						coroutine.yield()
+					end
+				end
+			end
+
+			function downloadFiles(data)
+				data.meta = data.meta or {}
+				data.download = data.download or {}
+				data.meta.dpath = data.meta.dpath or ""
+
+				local count = 0
+				for k, v in pairs(data.download) do
+					count = count + 1
+				end
+
+				pbProgress.max = count
+				pbProgress.position = 0
+				coroutine.yield()
+
+				local http = os.findWindowByTitle("http service")
+
+				if http ~= nil then
+					for k, v in pairs(data.download) do
+						local waiting = true
+
+						function onSuccess(url, handle)
+							local file = fs.open(expandVars(k), "w")
+							file.write(handle.readAll())
+							file.close()
+							handle.close()
+							waiting = false
+
+							pbProgress.position = pbProgress.position + 1
+							coroutine.yield()
+						end
+
+						function onFail(url)
+							fs.delete("/temp/")
+							fs.delete("/w/")
+							fs.delete(expandVars("%PATH%"))
+							fs.delete("winldr")
+							os.shell.reboot()
+						end
+
+						os.sendMessage(http, {msg = "request", url = data.meta.dpath .. v, onSuccess = onSuccess, onFail = onFail})
+
+						while waiting do
+							coroutine.yield()
+						end
+					end
+				else
+					app:showMessage(expandVars(locale["34"]))
+				end
+			end
+
+
+			lblStatus.caption = expandVars(locale["21"])
+			
+			local package = iniFiles.read("home:/Temp/" .. name .. "/package.ini")
+			local download = iniFiles.read("home:/Temp/" .. name .. "/download.ini")
+			local total = countFiles("home:/Temp/" .. name .. "/data/")
+
+			pbProgress.max = total
+			pbProgress.position = 0
+			lblStatus.caption = ""
+			coroutine.yield()
+
+			lblStatus.caption = expandVars(locale["22"])
+			copyFiles("home:/Temp/" .. name .. "/data", "/")
+			lblStatus.caption = ""
+			coroutine.yield()
+
+			lblStatus.caption = expandVars(locale["33"])
+			downloadFiles(download)
+			lblStatus.caption = ""
+			coroutine.yield()
+
+			pbProgress.position = 0
+			lblStatus.caption = expandVars(locale["29"])
+			coroutine.yield()
+
+			local shortcuts = iniFiles.read("home:/Temp/" .. name .. "/shortcuts.ini")
+			pbProgress.max = 0
+			for k, v in pairs(shortcuts) do
+				pbProgress.max = pbProgress.max + 1
+			end
+
+			for k, v in pairs(shortcuts) do
+				local shortcut = {
+					shortcut = {
+						file = expandVars(v.path),
+						icon = expandVars(v.icon),
+					}
+				}
+
+				local dummy = fs.open(expandVars(v.location), "w")
+				dummy.write("")
+				dummy.close()
+
+				iniFiles.write(expandVars(v.location), shortcut)
+				pbProgress.position = pbProgress.position + 1
+				coroutine.yield()
+			end
+
+			if setup.application.os == "true" then
+				local file = fs.open("boot.ini", "w")
+				file.write("[boot]\r\npath = " .. expandVars("%PATH%") .. "\r\n")
+				file.write("[loader]\r\n" .. expandVars("%APPNAME% %VERSION% = %PATH%/drivers/kernel\r\n"))
+				file.close()
+			end
+		end
+
+		installing = true
+		installPackage(setup.components.default)
+
+		pbProgress.position = 0
+		lblStatus.caption = ""
+		coroutine.yield()
+
+		for k, v in pairs(setup.extentions) do
+			os.setRegistryKeyValue("extensions", k, v)
+		end
+
+		os.setRegistryKeyValue(
+			"installed", setup.application.name .. " " .. setup.application.version, setup.run_installed.cmd
+		)
+
+		if setup.application.uninstall then
+			local s = setup.application.name .. " " .. setup.application.version .. ".wpk"
+			if fs.exists(tostring(string.gsub(os.getSystemPath() .. "/setup/" .. s, "home:/", ""))) then
+				fs.delete(tostring(string.gsub(os.getSystemPath() .. "/setup/" .. s, "home:/", "")))
+			end
+
+			fs.copy(
+				tostring(string.gsub(params[2], "home:/", "")),
+				tostring(string.gsub(os.getSystemPath() .. "/setup/" .. s, "home:/", ""))
+			)
+
+			os.setRegistryKeyValue("uninstall", setup.application.name .. " " .. setup.application.version, s)
+		end
+
+		if setup.after.run == "true" then
+			os.shell.run(setup.after.cmd)
+		end
+
+		frmSuccess:show()
+		coroutine.yield()
+		installing = false
+	end)
+end
+
+
+
+local picHeader1 = widgets.PaintBox.Create(frmSuccess, "picHeader")
+picHeader1.left = 0
+picHeader1.top = 1
+picHeader1.width = app.canvas.size.x + 1
+picHeader1.height = 5
+picHeader1:refresh()
+if fs.exists("/Temp/" .. setup["application"].header) then
+	local canvas = user.loadCanvas("home:/Temp/" .. setup.application.header):scale(picHeader1.width, picHeader1.height)
+	picHeader1.canvas:draw(0, 0, canvas)
+end
+
+local lbl1 = widgets.Label.Create(frmSuccess, "lbl1")
+lbl1.left = 2
+lbl1.top = 7
+lbl1.caption = expandVars(locale["24"])
+lbl1.width = app.canvas.size.x - 2
+lbl1.height = 1
+
+local lbl2 = widgets.Label.Create(frmSuccess, "lbl2")
+lbl2.left = 2
+lbl2.top = 8
+lbl2.caption = expandVars(locale["25"])
+lbl2.width = app.canvas.size.x - 2
+lbl2.height = 1
+
+local chkRun = widgets.CheckBox.Create(frmSuccess, "chkRun")
+chkRun.left = 2
+chkRun.top = 11
+chkRun.caption = expandVars(locale["27"])
+chkRun.width = app.canvas.size.x - 2
+chkRun.height = 1
+chkRun.checked = setup.run_installed.checked == "true"
+
+local chkReadme = widgets.CheckBox.Create(frmSuccess, "chkReadme")
+chkReadme.left = 2
+chkReadme.top = 13
+chkReadme.caption = expandVars(locale["28"])
+chkReadme.width = app.canvas.size.x - 2
+chkReadme.height = 1
+chkReadme.checked = setup.show_readme.checked == "true"
+
+if setup.run_installed.show == "false" then
+	chkRun.visible = false
+	chkReadme.top = 11
+end
+
+if setup.show_readme.show == "false" then
+	chkReadme.visible = false
+end
+
+if uninstalling then
+	chkRun.visible = false
+	chkReadme.visible = false
+end
+
+
+
+local btnNext = widgets.Button.Create(frmSuccess, "btnNext")
+btnNext.width = 9
+btnNext.left = app.canvas.size.x - btnNext.width
+btnNext.top = app.canvas.size.y - 2
+btnNext.caption = expandVars(locale["26"])
+
+btnNext.onClick = function(sender)
+	if chkRun.visible and chkRun.checked then
+		os.shell.run(expandVars(setup.run_installed.cmd))
+	end
+
+	if chkReadme.visible and chkReadme.checked then
+		os.shell.run(expandVars(setup.show_readme.cmd))
+	end
+
+	fs.delete("/temp/")
+
+	if setup.application.os == "true" then
+		fs.delete("win.pk")
+		fs.delete("/w/")
+		os.shell.restart()
+	else
+		app:terminate()
+	end
+end
+
+
+
+
+local frmFailure = form.Create("Installation Failed")
+app:addForm(frmFailure, "Installation Failed")
+
+
+
+os.startTimer(0.01, function() if installing then os.sendMessage(hwnd, {msg = "refresh"}) end end)
+
+
+app.activeForm = frmStart
+app:run()
