@@ -17,3 +17,5 @@ local list = {
 		},
 	},
 }
+
+return list
