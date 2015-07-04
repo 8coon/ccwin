@@ -1,0 +1,7 @@
+
+
+fs.makeDir("/ws/")
+fs.copy("/CCWin/system2/setup.app", "/ws/startup.app")
+shell.run("\"CCWin/sysWoW/pack\" WinSetup/Setup ws/setup.wpk -se")
+shell.run("\"CCWin/sysWoW/shrinkwin\" ws win.pk")
+fs.delete("/ws/")
