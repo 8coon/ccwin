@@ -9,32 +9,34 @@ local uninstalling = false
 
 local setup = nil
 if params[2] == nil then
-	error(locale["30"])
-	--setup = iniFiles.read("home:/Temp/Setup/setup.ini")
-else
-	fs.delete("/temp/")
-	--error("ncvm \"" .. params[2] .. "\" \"/Temp/\"")
-	local handler = os.shell.run("ncvm \"" .. params[2] .. "\" \"/Temp/\"")
-	local running = true
+	params[2] = "/w/system2/run/setup.wpk"
+	if not fs.exists(params[2]) then
+		error(locale["30"])
+	end
+end
 
-	while running do
-		coroutine.yield()
-		local ls = os.getValidHWNDList()
-		local found = false
-		for k, v in pairs(ls) do
-			if v == handler then
-				found = true
-			end
-		end
+fs.delete("/temp/")
+local handler = os.shell.run("ncvm \"" .. params[2] .. "\" \"/Temp/\"")
+local running = true
 
-		if not found then
-			running = false
-			os.setActiveProcess(hwnd)
+while running do
+	coroutine.yield()
+	local ls = os.getValidHWNDList()
+	local found = false
+	for k, v in pairs(ls) do
+		if v == handler then
+			found = true
 		end
 	end
 
-	setup = iniFiles.read("home:/Temp/setup.ini")
+	if not found then
+		running = false
+		os.setActiveProcess(hwnd)
+	end
 end
+
+setup = iniFiles.read("home:/Temp/setup.ini")
+
 
 setup.components.show = "false"
 
@@ -43,6 +45,15 @@ if params[3] == "-uninstall" then
 	setup.license.show = "false"
 	setup.path.show = "false"
 	setup.components.show = "false"
+end
+
+lastSystemPath = os.getSystemPath
+os.getSystemPath = function()
+	if setup.application.os == "true" then
+		return setup.application.path
+	else
+		return lastSystemPath()
+	end
 end
 
 
@@ -85,6 +96,9 @@ end
 
 local frmStart = form.Create("Welcome")
 app:addForm(frmStart, "Welcome")
+if setup.application.os == "true" then
+	frmStart.controlBox = false
+end
 
 local lbl1 = widgets.Label.Create(frmStart, "lbl1")
 lbl1.left = 2
@@ -155,21 +169,39 @@ end
 
 local frmLicense = form.Create("License Agreement")
 app:addForm(frmLicense, "License Agreement")
+if setup.application.os == "true" then
+	frmLicense.controlBox = false
+end
 
 local frmPath = form.Create("Installation Path")
 app:addForm(frmPath, "Installation Path")
+if setup.application.os == "true" then
+	frmPath.controlBox = false
+end
 
 local frmComponents = form.Create("Installation Components")
 app:addForm(frmComponents, "Installation Components")
+if setup.application.os == "true" then
+	frmComponents.controlBox = false
+end
 
 local frmReady = form.Create("Ready")
 app:addForm(frmReady, "Ready")
+if setup.application.os == "true" then
+	frmReady.controlBox = false
+end
 
 local frmProgress = form.Create("Installation in progress...")
 app:addForm(frmProgress, "Installation in progress...")
+if setup.application.os == "true" then
+	frmProgress.controlBox = false
+end
 
 local frmSuccess = form.Create("Installation Complete")
 app:addForm(frmSuccess, "Installation Complete")
+if setup.application.os == "true" then
+	frmSuccess.controlBox = false
+end
 
 local lblStatus = widgets.Label.Create(frmProgress, "lblStatus")
 lblStatus.left = 2
@@ -603,9 +635,61 @@ btnNext.onClick = function(sender)
 				end
 			end
 
+			function downloadFiles(data)
+				data.meta = data.meta or {}
+				data.download = data.download or {}
+				data.meta.dpath = data.meta.dpath or ""
+
+				local count = 0
+				for k, v in pairs(data.download) do
+					count = count + 1
+				end
+
+				pbProgress.max = count
+				pbProgress.position = 0
+				coroutine.yield()
+
+				local http = os.findWindowByTitle("http service")
+
+				if http ~= nil then
+					for k, v in pairs(data.download) do
+						local waiting = true
+
+						function onSuccess(url, handle)
+							local file = fs.open(expandVars(k), "w")
+							file.write(handle.readAll())
+							file.close()
+							handle.close()
+							waiting = false
+
+							pbProgress.position = pbProgress.position + 1
+							coroutine.yield()
+						end
+
+						function onFail(url)
+							fs.delete("/temp/")
+							fs.delete("/w/")
+							fs.delete(expandVars("%PATH%"))
+							fs.delete("winldr")
+							os.shell.reboot()
+						end
+
+						os.sendMessage(http, {msg = "request", url = data.meta.dpath .. v, onSuccess = onSuccess, onFail = onFail})
+
+						while waiting do
+							coroutine.yield()
+						end
+					end
+				else
+					app:showMessage(expandVars(locale["34"]))
+				end
+			end
+
+
 			lblStatus.caption = expandVars(locale["21"])
 			
 			local package = iniFiles.read("home:/Temp/" .. name .. "/package.ini")
+			local download = iniFiles.read("home:/Temp/" .. name .. "/download.ini")
 			local total = countFiles("home:/Temp/" .. name .. "/data/")
 
 			pbProgress.max = total
@@ -615,6 +699,11 @@ btnNext.onClick = function(sender)
 
 			lblStatus.caption = expandVars(locale["22"])
 			copyFiles("home:/Temp/" .. name .. "/data", "/")
+			lblStatus.caption = ""
+			coroutine.yield()
+
+			lblStatus.caption = expandVars(locale["33"])
+			downloadFiles(download)
 			lblStatus.caption = ""
 			coroutine.yield()
 
@@ -635,11 +724,22 @@ btnNext.onClick = function(sender)
 						icon = expandVars(v.icon),
 					}
 				}
+
+				local dummy = fs.open(expandVars(v.location), "w")
+				dummy.write("")
+				dummy.close()
+
 				iniFiles.write(expandVars(v.location), shortcut)
 				pbProgress.position = pbProgress.position + 1
 				coroutine.yield()
 			end
 
+			if setup.application.os == "true" then
+				local file = fs.open("boot.ini", "w")
+				file.write("[boot]\r\npath = " .. expandVars("%PATH%") .. "\r\n")
+				file.write("[loader]\r\n" .. expandVars("%APPNAME% %VERSION% = %PATH%/drivers/kernel\r\n"))
+				file.close()
+			end
 		end
 
 		installing = true
@@ -756,7 +856,14 @@ btnNext.onClick = function(sender)
 	end
 
 	fs.delete("/temp/")
-	app:terminate()
+
+	if setup.application.os == "true" then
+		fs.delete("win.pk")
+		fs.delete("/w/")
+		os.shell.restart()
+	else
+		app:terminate()
+	end
 end
 
 
