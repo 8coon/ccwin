@@ -302,7 +302,7 @@ btnNext.onClick = function(sender)
 			lblStatus.caption = ""
 			coroutine.yield()
 
-			for k, v in pairs(setup.extentions) do
+			for k, v in pairs((setup.extentions) or {}) do
 				os.setRegistryKeyValue("extensions", k, "")
 			end
 
