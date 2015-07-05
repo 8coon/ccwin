@@ -8,7 +8,7 @@ local VERSION_NEW = {
 local processes = {}
 local activeProcesses = {}
 local eventHandlers = {}
-local config = { timer = 0.1, desktop_color = colors.cyan, version = "0.9" }
+local config = { timer = 0.1, desktop_color = colors.cyan, version = VERSION_NEW.value }
 local running = true
 local screen = nil
 local clipboard = { data = nil, dType = "null" }
