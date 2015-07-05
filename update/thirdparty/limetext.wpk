@@ -551,12 +551,12 @@ table.insert(names, "/package/shortcuts.ini")
 table.insert(values, [[[shortcut]
 location = %DESKTOP%/LimeText.lnk
 path = %PATH%/limetext.app
-icon = %SYSTEM_FILES%/limetext.pic
+icon = %PATH%/limetext.pic
 
 [shortcut]
 location = %PROGRAMS%/LimeText.lnk
 path = %PATH%/limetext.app
-icon = %SYSTEM_FILES%/limetext.pic
+icon = %PATH%/limetext.pic
 ]])
 table.insert(names, "/setup.ini")
 table.insert(values, [[[application]
