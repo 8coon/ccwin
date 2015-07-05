@@ -636,6 +636,7 @@ btnNext.onClick = function(sender)
 			end
 
 			function downloadFiles(data)
+				data = data or {}
 				data.meta = data.meta or {}
 				data.download = data.download or {}
 				data.meta.dpath = data.meta.dpath or ""
