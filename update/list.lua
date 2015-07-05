@@ -7,47 +7,25 @@ local list = {
 
 	thirdparty = {
 		{
-			title = "TestApplication",
+			title = "LimeText",
+			version = "1.0.23",
+			author = "KAYOver",
+			description = "A nice & small text editor with lua syntax highlighting.",
+			icon = "pic|3|4|80 50 80 80 80 50 50 80 75 75 75 75 ",
+			minVersion = 100.0000,
+			maxVersion = 200.0000,
+			downloadLink = "https://raw.githubusercontent.com/8coon/ccwin/master/update/thirdparty/limetext.wpk",
+		},
+
+		{
+			title = "PhotoEdit",
 			version = "1.0.0",
-			author = "8coon",
-			description = "Ever since I released the first version of ComputerCraft back in 2011, I've always been amazed and impressed by the number of people who've come up to me to tell me they've used ComputerCraft to teach themselves programming.",
-			icon = "pic|3|4|b0*b0 b0 b0 b0*b0 b0 b0 87=88=88=8d*",
+			author = "KAYOver",
+			description = "Fork of built-in Paintbrush which introduces new design and fixes some bugs.",
+			icon = "pic|3|4|d0 30*30 30 d0 d0 d0 30*90 90 90 b9*",
 			minVersion = 100.0000,
-			maxVersion = 100.0001,
-			downloadLink = "https://raw.githubusercontent.com/8coon/ccwin/dev/update/test.wpk",
-		},
-
-		{
-			title = "TestApplication",
-			version = "1.0.1",
-			author = "8coon",
-			description = "Ever since I released the first version of ComputerCraft back in 2011, I've always been amazed and impressed by the number of people who've come up to me to tell me they've used ComputerCraft to teach themselves programming.",
-			icon = "pic|3|4|b0*b0 b0 b0 b0*b0 b0 b0 87=88=88=8d*",
-			minVersion = 100.0000,
-			maxVersion = 100.0001,
-			downloadLink = "https://raw.githubusercontent.com/8coon/ccwin/dev/update/test.wpk",
-		},
-
-		{
-			title = "TestApplication",
-			version = "1.0.2",
-			author = "8coon",
-			description = "Ever since I released the first version of ComputerCraft back in 2011, I've always been amazed and impressed by the number of people who've come up to me to tell me they've used ComputerCraft to teach themselves programming.",
-			icon = "pic|3|4|b0*b0 b0 b0 b0*b0 b0 b0 87=88=88=8d*",
-			minVersion = 102.0000,
-			maxVersion = 102.0001,
-			downloadLink = "https://raw.githubusercontent.com/8coon/ccwin/dev/update/test.wpk",
-		},
-
-		{
-			title = "TestApplication",
-			version = "1.0.0",
-			author = "8coon",
-			description = "Ever since I released the first version of ComputerCraft back in 2011, I've always been amazed and impressed by the number of people who've come up to me to tell me they've used ComputerCraft to teach themselves programming.",
-			icon = "pic|3|4|b0*b0 b0 b0 b0*b0 b0 b0 87=88=88=8d*",
-			minVersion = 100.0000,
-			maxVersion = 100.0001,
-			downloadLink = "https://raw.githubusercontent.com/8coon/ccwin/dev/update/test.wpk",
+			maxVersion = 200.0000,
+			downloadLink = "https://raw.githubusercontent.com/8coon/ccwin/master/update/thirdparty/photoedit.wpk",
 		},
 	},
 }
