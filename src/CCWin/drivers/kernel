@@ -956,7 +956,9 @@ end
 
 
 function SendMessage(hwnd, message)
-	table.insert(processes[hwnd].messages, message)
+	if processes[hwnd] ~= nil then
+		table.insert(processes[hwnd].messages, message)
+	end
 end
 
 
