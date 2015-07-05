@@ -1,0 +1,639 @@
+local names = {}
+local values = {}
+table.insert(names, "/logo.pic")
+table.insert(values, [[pic|7|32|b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=30 00 00 30 b9=30 00 00 30 30 00 30 b9=b9=30 b9=b9=30 00 30 00 30 00 00 30 b9=00 b9=b9=b9=b9=30 00 30 30 00 30 00 30 30 00 30 30 00 30 30 00 30 30 00 30 30 00 30 00 00 30 30 00 30 b9=b9=b9=30 00 30 30 30 30 00 30 30 30 30 30 00 30 00 30 00 30 00 30 30 00 30 00 30 00 30 00 30 b9=b9=b9=30 00 30 30 00 30 00 30 30 00 30 30 00 30 00 30 00 30 00 30 30 00 30 00 30 00 30 00 30 b9=b9=b9=b9=30 00 00 30 b9=30 00 00 30 b9=b9=30 00 30 b9=30 00 30 b9=30 00 30 00 b9=30 00 00 b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=]])
+table.insert(names, "/package/data/limetext.app")
+table.insert(values, [[local app = application.Create(os.getProcessInfo(os.getCurrentProcess()), os)
+local mainForm = form.Create("LimeText")
+local currentFileName = ""
+local commandArgs = ""
+
+local frmAbout = form.Create("About LimeText")
+app:addForm(frmAbout, "About LimeText")
+frmAbout.controlBox = false
+frmAbout.bgcolor = colors.gray
+
+app:addForm(mainForm, "LimeText")
+mainForm.bgcolor = colors.gray
+mainForm:show()
+
+
+if fs.exists("WinCC/UserData/AppData/LimeText/logo.pic") then
+	local logo = widgets.PaintBox.Create(frmAbout, "logo")
+	local logoImg = user.loadCanvas(os.getSystemPath() .. "/UserData/AppData/LimeText/logo.pic")
+	logo.height = logoImg.size.y
+	logo.width = logoImg.size.x + 1
+	logo.top = 2
+	logo.left = 18
+	logo.canvas = logoImg
+	--\[-\[-logo.onClick = function(sender)
+		local logo = widgets.PaintBox.Create(frmAbout, "logo")
+		local logoImg = user.loadCanvas(os.getSystemPath() .. "/UserData/AppData/LimeText/logoCl.pic")
+		logo.height = logoImg.size.y
+		logo.width = logoImg.size.x + 1
+		logo.top = 2
+		logo.left = 18
+		logo.canvas = logoImg
+	end\]-\]-
+end
+
+local lblAbout2 = widgets.Label.Create(frmAbout, "lblAbout2")
+lblAbout2.left = math.floor(app.canvas.size.x / 2 - lblAbout2.width - 2) + 1
+lblAbout2.top = app.canvas.size.y - 5
+lblAbout2.width = 27
+lblAbout2.bgcolor = colors.gray
+lblAbout2.forecolor = colors.white
+lblAbout2.caption = "Copyright (C) 2015 KAYOver"
+
+local lblAbout3 = widgets.Label.Create(frmAbout, "lblAbout3")
+lblAbout3.left = math.floor(app.canvas.size.x / 2 - lblAbout3.width) 
+lblAbout3.top = app.canvas.size.y - 4
+lblAbout3.width = 24
+lblAbout3.bgcolor = colors.gray
+lblAbout3.forecolor = colors.white
+lblAbout3.caption = "Version 1.0, Build 0023"
+
+local btnAbout = widgets.Button.Create(frmAbout, "btnAbout")
+btnAbout.width = 7
+btnAbout.left = math.floor(app.canvas.size.x / 2 - btnAbout.width / 2) + 1
+btnAbout.top = app.canvas.size.y - 2
+btnAbout.bgcolor = colors.lightGray
+btnAbout.forecolor = colors.gray
+btnAbout.caption = " Close"
+
+btnAbout.onClick = function(sender)
+	mainForm:show()
+	os.sendMessage(hwnd, {msg = "refresh"})
+end
+
+
+
+local textArea = widgets.TextArea.Create(mainForm, "textArea", widgets)
+textArea.left = 1
+textArea.top = 2
+textArea.height = app.canvas.size.y - 2 
+textArea.width = app.canvas.size.x
+textArea.text = ""
+textArea.bgcolor = colors.gray
+textArea.forecolor = colors.white
+
+
+
+function SyntaxHighlighter_Create()
+	local charList = {}
+	charList["+"] = true
+	charList["-"] = true
+	charList["*"] = true
+	charList["/"] = true
+	charList["="] = true
+	charList[">"] = true
+	charList["<"] = true
+
+
+	local keyList = {}
+	keyList["function"] = false
+	keyList["break"] = false
+	keyList["if"] = false
+	keyList["then"] = false
+	keyList["return"] = false
+	keyList["end"] = false
+	keyList["elseif"] = false
+	keyList["else"] = false
+	keyList["local"] = false
+	keyList["for"] = false
+	keyList["in"] = false
+	keyList["do"] = false
+	keyList["repeat"] = false
+	keyList["until"] = false
+	keyList["while"] = false
+	keyList[".."] = false
+	keyList["and"] = false
+	keyList["or"] = false
+	keyList["not"] = false
+
+
+	stringConstChars = {}
+	stringConstChars["\""] = true
+	stringConstChars["\'"] = true
+
+
+	local numChars = {}
+	numChars["0"] = true
+	numChars["1"] = true
+	numChars["2"] = true
+	numChars["3"] = true
+	numChars["4"] = true
+	numChars["5"] = true
+	numChars["6"] = true
+	numChars["7"] = true
+	numChars["8"] = true
+	numChars["9"] = true
+
+
+	local otherKeyList = {}
+	otherKeyList["_G"] = false
+	otherKeyList["true"] = false
+	otherKeyList["false"] = false
+	otherKeyList["nil"] = false
+
+
+	local otherChars = {}
+	otherChars["."] = true
+	otherChars[":"] = true
+	otherChars["("] = true
+	otherChars[")"] = true
+	otherChars["{"] = true
+	otherChars["}"] = true
+	otherChars["["] = true
+	otherChars["]"] = true
+	otherChars["\\"] = true	
+
+
+	local highlighter = {
+		specialChars = {
+			list = charList,
+			bgcolor = colors.gray,
+			forecolor = colors.orange,			
+		},
+
+		keyWords = {
+			list = keyList,
+			bgcolor = colors.gray,
+			forecolor = colors.orange,
+		},
+
+		otherKeyWords = {
+			list = otherKeyList,
+			bgcolor = colors.gray,
+			forecolor = colors.yellow,
+		},
+
+		stringConsts = {
+			list = stringConstChars,
+			bgcolor = colors.gray,
+			forecolor = colors.lime,
+		},
+
+		comments = {
+			bgcolor = colors.gray,
+			forecolor = colors.lightGray,
+		},
+
+		numbers = {
+			list = numChars,
+			bgcolor = colors.gray,
+			forecolor = colors.yellow,
+		},
+
+		others = {
+			list = otherChars,
+			bgcolor = colors.gray,
+			forecolor = colors.white,
+		},
+
+		commentOpened = false,
+		bracketOpened = false,
+		bogCommentOpened = false,
+		bigBracketOpened = false,
+		echoed = false,
+		highlightCanvas = nil,
+
+		scrolling = {
+			left = 0,
+			top = 0,
+		},
+
+
+
+		getWordColor = function(self, word)
+			if self.keyWords.list[word] ~= nil then
+				return self.keyWords.forecolor
+			else
+				return nil
+			end
+		end,
+
+
+		getWordColor2 = function(self, word)
+			if self.otherKeyWords.list[word] ~= nil then
+				return self.otherKeyWords.forecolor
+			else
+				return nil
+			end
+		end,
+
+
+		getStringConstColor = function(self, word)
+			if user.stringstarts(word, "\[-\[-") then
+				self.bigBracketOpened = true
+			end
+
+			if user.stringends(word, "\]-\]-") then
+				self.bigBracketOpened = false
+			end
+
+
+			if self.bigBracketOpened then
+				return self.stringConsts.forecolor
+			end
+		end,
+
+
+		getCommentColor = function(self, word)
+			if (not self.commentOpened) or (not self.bigCommentOpened) then
+				if user.stringstarts(word, "--") then
+					self.commentOpened = true
+				end
+			end
+
+			if self.commentOpened or self.bigCommentOpened then
+				return self.comments.forecolor
+			end
+		end,
+
+
+		countSpaces = function(self, str)
+			local index = 1
+
+			if string.sub(str, index, index) == " " then
+				repeat
+					index = index + 1
+				until not (string.sub(str, index, index) == " ")
+			end
+
+			return index
+		end,
+
+
+
+		parseAreaData = function(self, areaData, forecolor, sizeX, sizeY)
+			self.highlightCanvas = user.CreateCanvas(256, #areaData)
+			self.bigBracketOpened = false
+
+
+
+			for i = self.scrolling.top, self.scrolling.top + sizeY do
+				local v = areaData[i] or ""
+				local line = string.gsub(string.gsub(string.gsub(v, "\t", " "), "\r", ""), "\0", "")
+				local left = self:countSpaces(line)
+				line = string.sub(line, left)
+				local words = user.split(line, " ")
+				--self.bracketOpened = false
+				self.commentOpened = false
+
+
+				for j, word in ipairs(words) do
+					self.highlightCanvas.bgcolor = self:getCommentColor(word) or self:getStringConstColor(word) or self:getWordColor(word) or self:getWordColor2(word) or forecolor
+					self.highlightCanvas:setCursorPos(left, i)
+					self.highlightCanvas:write(word)
+
+					left = left + string.len(word) + 1
+				end
+			end
+		end,
+
+
+		setScrolling = function(self, scrolling)
+			self.scrolling = scrolling
+		end,
+
+
+		getbgcolor = function(self, x, y, bgcolor, forecolor, char)
+			if (self.bracketOpened) or (self.stringConsts.list[char] ~= nil)  then
+				return self.stringConsts.bgcolor
+			else
+				if self.specialChars.list[char] ~= nil then
+					return self.specialChars.bgcolor
+				else
+					return bgcolor
+				end
+			end
+		end,
+
+
+		getforecolor = function(self, x, y, bgcolor, forecolor, char)
+			local x = x + self.scrolling.left - 1
+			local y = y + self.scrolling.top
+
+			if (self.highlightCanvas ~= nil) and (self.highlightCanvas.data[y] ~= nil) and (self.highlightCanvas.data[y][x] ~= nil) then
+				if self.highlightCanvas.data[y][x].bgcolor ~= forecolor then
+					return self.highlightCanvas.data[y][x].bgcolor
+				else
+					if ((self.bracketOpened) or (self.stringConsts.list[char] ~= nil)) then
+						return self.stringConsts.forecolor
+					end
+				end
+			end
+
+			if self.specialChars.list[char] ~= nil then
+				return self.specialChars.forecolor
+			elseif self.numbers.list[char] ~= nil then
+				return self.numbers.forecolor
+			elseif self.others.list[char] ~= nil then
+				return self.others.forecolor
+			else
+				return forecolor
+			end
+		end,
+
+
+		getchar = function(self, x, y, bgcolor, forecolor, char)
+			if x == 1 then self.bracketOpened = false end
+
+			if char == "\\" then
+				self.echoed = true
+			end
+
+
+			if (self.stringConsts.list[char] ~= nil) and (not (self.echoed)) then
+				if self.bracketOpened then self.bracketOpened = false else self.bracketOpened = true end
+			end
+
+			self.echoed = false
+			return char
+		end,
+	}
+
+	return highlighter
+end
+
+
+
+
+textArea.syntaxHighlighter = SyntaxHighlighter_Create()
+
+
+
+
+function loadFile(fileName)
+	local file = fs.open(fileName, "r")
+	local text = ""
+
+	if file ~= nil then
+		text = file.readAll()
+		file.close()
+	end
+
+	currentFileName = fileName
+	mainForm.name = "" .. os.extractFileName(fileName) .. " - LimeText"
+	os.sendMessage(hwnd, {msg = "refresh"})
+
+	textArea:setText(text)
+	textArea:refresh()
+end
+
+
+function saveFile(fileName)
+	local file = fs.open(fileName, "w")
+	local text = textArea:getText()
+
+	if file ~= nil then
+		file.write(text)
+		file.close()
+	end
+
+	currentFileName = fileName
+	mainForm.name = "" .. os.extractFileName(fileName) .. " - LimeText"
+end
+
+
+function loadArgs()
+	local settings = iniFiles.read(os.getSystemPath() .. "/UserData/AppData/LimeText/limetext.ini") or {}
+	local debug = settings.debug or { args = "" }
+
+	commandArgs = debug.args
+
+	settings.debug = debug
+	iniFiles.write(os.getSystemPath() .. "/UserData/AppData/LimeText/limetext.ini", settings)
+end
+
+
+function saveArgs()
+	local settings = iniFiles.read(os.getSystemPath() .. "/UserData/AppData/LimeText/limetext.ini") or {}
+	local debug = settings.debug or { args = commandArgs }
+
+	settings.debug = debug
+	iniFiles.write(os.getSystemPath() .. "/UserData/AppData/LimeText/limetext.ini", settings)
+end
+
+
+
+
+
+
+local saveDialog = widgets.dialogs.SaveDialog.Create(mainForm, "SaveDialog")
+
+saveDialog.onExecute = function(sender)
+	local fileName = string.gsub(sender.fileName, "home:/", "", 1)
+	saveFile(fileName)
+end
+
+
+
+local openDialog = widgets.dialogs.OpenDialog.Create(mainForm, "OpenDialog")
+
+openDialog.onExecute = function(sender)
+	local fileName = string.gsub(sender.fileName, "home:/", "", 1)
+	loadFile(fileName)
+end
+
+
+
+function file_newClick()
+	os.shell.run("limetext")
+	app:terminate()
+end
+
+function file_openClick()
+	openDialog:execute()
+end
+
+function file_saveClick()
+	if currentFileName ~= "" then
+		saveFile(currentFileName)
+	else
+		saveDialog:execute()
+	end
+end
+
+function file_saveAsClick()
+	saveDialog:execute()
+end
+
+function file_exitClick()
+	app:terminate()
+end
+
+
+
+
+local fileMenu = widgets.PopupMenu.Create()
+table.insert(fileMenu.items, widgets.PopupMenu.CreateItem("New", function(sender) file_newClick() end))
+table.insert(fileMenu.items, widgets.PopupMenu.CreateItem("Open", function(sender) file_openClick() end))
+table.insert(fileMenu.items, widgets.PopupMenu.CreateItem("Save", function(sender) file_saveClick() end))
+table.insert(fileMenu.items, widgets.PopupMenu.CreateItem("-", nil))
+table.insert(fileMenu.items, widgets.PopupMenu.CreateItem("Save As..", function(sender) file_saveAsClick() end))
+table.insert(fileMenu.items, widgets.PopupMenu.CreateItem("-", nil))
+table.insert(fileMenu.items, widgets.PopupMenu.CreateItem("Exit", function(sender) file_exitClick() end))
+
+
+local runMenu = widgets.PopupMenu.Create()
+table.insert(runMenu.items, widgets.PopupMenu.CreateItem("Run", function(sender)
+	if currentFileName ~= "" then
+		saveFile(currentFileName)
+	else
+		saveDialog:execute()
+	end
+
+	os.shell.run(currentFileName .. " " .. commandArgs)
+end))
+
+table.insert(runMenu.items, widgets.PopupMenu.CreateItem("-", nil))
+
+table.insert(runMenu.items, widgets.PopupMenu.CreateItem("Command line arguments", function(sender)
+	os.messageBox("input", "Command line argunemts:", "Run", 
+		{ 
+			{caption = "OK", 
+				onClick = function(sender)
+					commandArgs = sender.parent.widgets.edit.text
+					saveArgs()
+					os.hideMessageBox()
+				end
+			},
+
+			{caption = "Cancel", 
+				onClick = function(sender)
+					os.hideMessageBox()
+				end
+			},
+		}, commandArgs)
+end))
+
+
+
+local helpMenu = widgets.PopupMenu.Create()
+table.insert(helpMenu.items, widgets.PopupMenu.CreateItem("About LimeText", function(sender) frmAbout:show() end))
+
+
+local menu = widgets.MenuBar.Create(mainForm, "Menu")
+table.insert(menu.items, widgets.MenuBar.CreateItem("File", function(sender) widgets.popupMenu(fileMenu, sender.left, sender.top + 2) end))
+table.insert(menu.items, widgets.MenuBar.CreateItem("Run", function(sender) widgets.popupMenu(runMenu, sender.left, sender.top + 2) end))
+table.insert(menu.items, widgets.MenuBar.CreateItem("Help", function(sender) widgets.popupMenu(helpMenu, sender.left, sender.top + 2) end))
+
+
+
+
+
+
+
+
+if params[2] ~= nil then
+	loadFile(string.gsub(params[2], "home:/", "", 1))
+end
+
+loadArgs()
+
+
+
+os.startTimer(0.05, function()
+	textArea:refresh(true)
+	os.sendMessage(hwnd, {msg = "refresh"})
+end )
+app:run()]])
+table.insert(names, "/package/data/limetext.pic")
+table.insert(values, [[pic|3|4|80 50 80 80 80 50 50 80 75 75 75 75 ]])
+table.insert(names, "/package/package.ini")
+table.insert(values, [[[package]
+title = %APPNAME% %VERSION%
+path = %PATH%
+obligatory = true]])
+table.insert(names, "/package/shortcuts.ini")
+table.insert(values, [[[shortcut]
+location = %DESKTOP%/LimeText.lnk
+path = %PATH%/limetext.app
+icon = %PATH%/limetext.pic
+
+[shortcut]
+location = %PROGRAMS%/LimeText.lnk
+path = %PATH%/limetext.app
+icon = %PATH%/limetext.pic
+]])
+table.insert(names, "/setup.ini")
+table.insert(values, [[[application]
+name = LimeText
+version = 1.0.23
+company = KAYOver
+path = %PROGRAM%/%COMPANY%/%APPNAME%/%VERSION%/
+list = true
+header = logo.pic
+bg = white
+override = true
+uninstall = true
+
+[extentions]
+
+[license]
+show = false
+file = license0.txt
+blindly = false
+
+[path]
+show = true
+editable = true
+
+[components]
+show = true
+default = package
+
+[after]
+run = false
+cmd = winver
+
+[run_installed]
+show = true
+checked = true
+cmd = "%PATH%/limetext.app"
+
+[show_readme]
+show = false
+checked = true
+cmd = notepad "%PATH%/readme.txt"]])
+local args = {...}
+local path = args[2] or "/temp"
+if not xwin then
+	path = args[1] or "/temp"
+end
+
+function _utStrSplit(self, sep)
+	local sep, fields = sep or ":", {}
+	local pattern = string.format("([^%s]+)", sep)
+	self:gsub(pattern, function(c) fields[#fields+1] = c end)
+	return fields
+end
+
+print("Unpacking LRC...")
+
+fs.makeDir(path)
+for i = 1, #names do
+	local l = _utStrSplit(names[i], "/")
+	local p = ""
+	if #l > 1 then
+		pcall(function()
+			for i = 1, #p - 2 do
+				p = p .. "/" .. l[i]
+			end
+		end)
+	end
+
+	pcall(function()
+		print("Unpacking " .. names[i] .. "...")
+		fs.makeDir(path .. "/" .. p)
+		local file = fs.open(path .. "/" .. names[i], "w")
+		values[i] = string.gsub(values[i], "\\%[%-\\%[%-", "%[%[")
+		values[i] = string.gsub(values[i], "\\%]%-\\%]%-", "%]%]")
+		file.write(values[i])
+		file.close()
+	end)
+end
+print("Done!")
+return names, values

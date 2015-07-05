@@ -1,0 +1,376 @@
+local names = {}
+local values = {}
+table.insert(names, "/license.txt")
+table.insert(values, [[
+CCWin - Terms and conditions
+
+1.    Preamble: This Agreement, signed on Jun 4, 2015 (hereinafter: Effective Date) governs the relationship between User, a Business Entity, (hereinafter: Licensee) and Puzzletime, a private person whose principal place of business is Moscow, Russian Federation (hereinafter: Licensor). This Agreement sets the terms, rights, restrictions and obligations on using CCWin (hereinafter: The Software) created and owned by Licensor, as detailed herein
+
+2.    License Grant: Licensor hereby grants Licensee a Sublicensable, Non-assignable & non-transferable, Pepetual, Non-commercial, Including the rights to distribute derivative works, Non-exclusive license, all with accordance with the terms set forth and other legal restrictions set forth in 3rd party software used while running Software.
+
+    2.1    Limited: Licensee may use Software for the purpose of:
+        2.1.1    Running Software on Licensee’s Website[s] and Server[s];
+        2.1.2    Allowing 3rd Parties to run Software on Licensee’s Website[s] and Server[s];
+        2.1.3    Publishing Software’s output to Licensee and 3rd Parties;
+        2.1.4    Distribute verbatim copies of Software’s output (including compiled binaries);
+        2.1.5    Modify Software to suit Licensee’s needs and specifications.
+    2.2    This license is granted perpetually, as long as you do not materially breach it.
+
+    2.3    Non Assignable & Non-Transferable: Licensee may not assign or transfer his rights and duties under this license.
+
+    2.4    Non-Commercial: Licensee may not use Software for commercial purposes. for the purpose of this license, commercial purposes means that a 3rd party has to pay in order to access Software or that the Website that runs Software is behind a paywall.
+
+    2.5    Including the right to Distribute Derivative Works: Licensee may create and distribute derivative works based on Software, including amending Software’s source code, modifying it, integrating it into a larger work or removing portions of Software, as long as credit to the Licensor is granted and that redistribution is made under the terms of this license.
+
+    2.6    With Attribution Requirements﻿: Mentioning in the "About" screen (and in documentation, if present)
+
+    2.7    [Multi-]Site: Licensee may use Software on unlimited server[s] and unlimited website[s], for Licensee’s websites only 
+3.    Term & Termination: The Term of this license shall be until terminated. Licensor may terminate this Agreement, including Licensee’s license in the case where Licensee :
+
+    3.1    became insolvent or otherwise entered into any liquidation process; or
+
+    3.2    exported The Software to any jurisdiction where licensor may not enforce his rights under this agreements in; or
+
+    3.3    Licensee was in breach of any of this license's terms and conditions and such breach was not cured, immediately upon notification; or
+
+    3.4    Licensee in breach of any of the terms of clause 2 to this license; or
+
+    3.5    Licensee otherwise entered into any arrangement which caused Licensor to be unable to enforce his rights under this License.
+4.    Payment: In consideration of the License granted under clause 2, Licensee shall pay Licensor a fee, via Credit-Card, PayPal or any other mean which Licensor may deem adequate. Failure to perform payment shall construe as material breach of this Agreement.
+
+5.    Upgrades, Updates and Fixes: Licensor may provide Licensee, from time to time, with Upgrades, Updates or Fixes, as detailed herein and according to his sole discretion. Licensee hereby warrants to keep The Software up-to-date and install all relevant updates and fixes, and may, at his sole discretion, purchase upgrades, according to the rates set by Licensor. Licensor shall provide any update or Fix free of charge; however, nothing in this Agreement shall require Licensor to provide Updates or Fixes.
+
+    5.1    Upgrades: for the purpose of this license, an Upgrade shall be a material amendment in The Software, which contains new features and or major performance improvements and shall be marked as a new version number. For example, should Licensee purchase The Software under version 1.X.X, an upgrade shall commence under number 2.0.0.
+
+    5.2    Updates: for the purpose of this license, an update shall be a minor amendment in The Software, which may contain new features or minor improvements and shall be marked as a new sub-version number. For example, should Licensee purchase The Software under version 1.1.X, an upgrade shall commence under number 1.2.0.
+
+    5.3    Fix: for the purpose of this license, a fix shall be a minor amendment in The Software, intended to remove bugs or alter minor features which impair the The Software's functionality. A fix shall be marked as a new sub-sub-version number. For example, should Licensee purchase Software under version 1.1.1, an upgrade shall commence under number 1.1.2.
+
+6.    Support: Software is provided under an AS-IS basis and without any support, updates or maintenance. Nothing in this Agreement shall require Licensor to provide Licensee with support or fixes to any bug, failure, mis-performance or other defect in The Software.
+
+    6.1    Bug Notification: Licensee may provide Licensor of details regarding any bug, defect or failure in The Software promptly and with no delay from such event; Licensee shall comply with Licensor's request for information regarding bugs, defects or failures and furnish him with information, screenshots and try to reproduce such bugs, defects or failures.
+
+    6.2    Feature Request: Licensee may request additional features in Software, provided, however, that (i) Licensee shall waive any claim or right in such feature should feature be developed by Licensor; (ii) Licensee shall be prohibited from developing the feature, or disclose such feature request, or feature, to any 3rd party directly competing with Licensor or any 3rd party which may be, following the development of such feature, in direct competition with Licensor; (iii) Licensee warrants that feature does not infringe any 3rd party patent, trademark, trade-secret or any other intellectual property right; and (iv) Licensee developed, envisioned or created the feature solely by himself.
+
+7.    Liability:  To the extent permitted under Law, The Software is provided under an AS-IS basis. Licensor shall never, and without any limit, be liable for any damage, cost, expense or any other payment incurred by Licensee as a result of Software’s actions, failure, bugs and/or any other interaction between The Software  and Licensee’s end-equipment, computers, other software or any 3rd party, end-equipment, computer or services.  Moreover, Licensor shall never be liable for any defect in source code written by Licensee when relying on The Software or using The Software’s source code.
+
+8.    Warranty:  
+
+    8.1    Intellectual Property: Licensor hereby warrants that The Software does not violate or infringe any 3rd party claims in regards to intellectual property, patents and/or trademarks and that to the best of its knowledge no legal action has been taken against it for any infringement or violation of any 3rd party intellectual property rights.
+
+    8.2    No-Warranty: The Software is provided without any warranty; Licensor hereby disclaims any warranty that The Software shall be error free, without defects or code which may cause damage to Licensee’s computers or to Licensee, and that Software shall be functional. Licensee shall be solely liable to any damage, defect or loss incurred as a result of operating software and undertake the risks contained in running The Software on License’s Server[s] and Website[s].
+
+    8.3    Prior Inspection: Licensee hereby states that he inspected The Software thoroughly and found it satisfactory and adequate to his needs, that it does not interfere with his regular operation and that it does meet the standards and scope of his computer systems and architecture. Licensee found that The Software interacts with his development, website and server environment and that it does not infringe any of End User License Agreement of any software Licensee may use in performing his services. Licensee hereby waives any claims regarding The Software's incompatibility, performance, results and features, and warrants that he inspected the The Software.
+
+9.    No Refunds: Licensee warrants that he inspected The Software according to clause 7(c) and that it is adequate to his needs. Accordingly, as The Software is intangible goods, Licensee shall not be, ever, entitled to any refund, rebate, compensation or restitution for any reason whatsoever, even if The Software contains material flaws.
+
+10.    Indemnification: Licensee hereby warrants to hold Licensor harmless and indemnify Licensor for any lawsuit brought against it in regards to Licensee’s use of The Software in means that violate, breach or otherwise circumvent this license, Licensor's intellectual property rights or Licensor's title in The Software. Licensor shall promptly notify Licensee in case of such legal action and request Licensee’s consent prior to any settlement in relation to such lawsuit or claim.
+
+11.    Governing Law, Jurisdiction: Licensee hereby agrees not to initiate class-action lawsuits against Licensor in relation to this license and to compensate Licensor for any legal fees, cost or attorney fees should any claim brought by Licensee against Licensor be denied, in part or in full. 
+]])
+table.insert(names, "/logo.pic")
+table.insert(values, [[pic|7|32|b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=30 00 00 30 b9=30 00 00 30 30 00 30 b9=b9=30 b9=b9=30 00 30 00 30 00 00 30 b9=00 b9=b9=b9=b9=30 00 30 30 00 30 00 30 30 00 30 30 00 30 30 00 30 30 00 30 30 00 30 00 00 30 30 00 30 b9=b9=b9=30 00 30 30 30 30 00 30 30 30 30 30 00 30 00 30 00 30 00 30 30 00 30 00 30 00 30 00 30 b9=b9=b9=30 00 30 30 00 30 00 30 30 00 30 30 00 30 00 30 00 30 00 30 30 00 30 00 30 00 30 00 30 b9=b9=b9=b9=30 00 00 30 b9=30 00 00 30 b9=b9=30 00 30 b9=30 00 30 b9=30 00 30 00 b9=30 00 00 b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=]])
+table.insert(names, "/package/data/Miku/balloon.pic")
+table.insert(values, [[pic|8|21|a0 a0 a0 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 a0 a0 a0 a0 90 0f 0f 0f 0f 0f 0f 0f 0f 0f 0f 0f 0f 0f 0f 0f 0f 90 a0 a0 a0 90 0f 00 0f 0f 0f 0f 0f 0f 0f 0f 0f 0f 0f 0f 0f 0f 90 a0 a0 90 00 0f 00 0f 0f 0f 0f 0f 0f 0f 0f 0f 0f 0f 0f 0f 0f 90 a0 a0 90 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 90 a0 a0 90 00 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 a0 a0 a0 90 90 a0 a0 a0 a0 a0 a0 a0 a0 a0 a0 a0 a0 a0 a0 a0 a0 a0 a0 a0 90 a0 a0 a0 a0 a0 a0 a0 a0 a0 a0 a0 a0 a0 a0 a0 a0 a0 a0 a0 ]])
+table.insert(names, "/package/data/Miku/down.pic")
+table.insert(values, [[pic|10|13|00 00 e0 90 90 90 90 90 90 90 e0 00 00 00 90 90 e0 90 90 90 90 90 e0 90 90 00 00 90 90 90 40 40 40 40 40 90 90 90 00 90 90 90 40 a0 a0 40 a0 a0 40 00 90 00 90 90 00 40 a0 f0 40 a0 f0 40 00 90 90 90 00 00 40 40 40 40 40 40 40 00 90 90 90 00 00 f0 90 40 40 40 90 f0 00 00 90 90 00 f0 f0 f0 90 f0 90 f0 f0 f0 00 90 90 0f 0f 40 f0 90 90 90 f0 40 00 00 90 0f 0f 00 f0 90 90 90 90 90 f0 00 0f 00 ]])
+table.insert(names, "/package/data/Miku/happy1.pic")
+table.insert(values, [[pic|10|13|00 00 e0 90 90 90 90 90 90 90 e0 00 00 00 00 90 e0 90 90 90 90 90 e0 90 00 00 00 90 90 90 40 40 40 40 40 90 90 00 00 00 90 90 40 f0 40 40 40 f0 40 90 90 00 90 90 00 f0 40 f0 40 f0 40 f0 00 90 90 90 90 00 40 40 40 40 40 40 40 00 90 90 90 90 00 f0 90 40 40 40 90 f0 00 90 90 90 00 f0 f0 f0 90 f0 90 f0 f0 f0 90 90 90 0f 0f 40 f0 90 90 90 f0 40 00 90 90 0f 0f 00 f0 90 90 90 90 90 f0 00 0f 00 ]])
+table.insert(names, "/package/data/Miku/happy2.pic")
+table.insert(values, [[pic|10|13|00 00 e0 90 90 90 90 90 90 90 e0 00 00 00 00 90 e0 90 90 90 90 90 e0 90 00 00 00 90 90 90 40 40 40 40 40 90 90 00 00 00 90 90 40 f0 40 40 40 f0 40 90 90 00 90 90 00 f0 40 f0 40 f0 40 f0 00 90 90 90 90 00 40 60 40 40 40 60 40 00 90 90 90 90 00 f0 90 40 40 40 90 f0 00 90 90 90 00 f0 f0 f0 90 f0 90 f0 f0 f0 90 90 90 0f 0f 40 f0 90 90 90 f0 40 00 90 90 0f 0f 00 f0 90 90 90 90 90 f0 00 0f 00 ]])
+table.insert(names, "/package/data/Miku/idle.pic")
+table.insert(values, [[pic|10|13|00 00 e0 90 90 90 90 90 90 90 e0 00 00 00 00 90 e0 90 90 90 90 90 e0 90 00 00 00 90 90 90 40 40 40 40 40 90 90 00 00 00 90 90 40 a0 f0 40 f0 a0 40 90 90 00 90 90 00 40 a0 f0 40 f0 a0 40 00 90 90 90 90 00 40 40 40 40 40 40 40 00 90 90 90 90 00 f0 90 40 40 40 90 f0 00 90 90 90 00 f0 f0 f0 90 f0 90 f0 f0 f0 90 90 90 0f 0f 40 f0 90 90 90 f0 40 00 90 90 0f 0f 00 f0 90 90 90 90 90 f0 00 0f 00 ]])
+table.insert(names, "/package/data/Miku/s1.pic")
+table.insert(values, [[pic|10|13|00 00 e0 90 90 90 90 90 90 90 e0 00 00 00 00 90 e0 90 90 90 90 90 e0 90 00 00 00 90 90 90 40 40 40 40 40 90 90 00 00 00 90 90 40 a0 a0 40 a0 a0 40 90 90 00 90 90 00 40 a0 f0 40 a0 f0 40 00 90 90 90 90 00 40 40 40 40 40 40 40 00 90 90 90 90 00 f0 90 40 40 40 90 f0 00 90 90 90 00 f0 f0 f0 90 f0 90 f0 f0 f0 90 90 90 0f 0f 40 f0 90 90 90 f0 40 00 90 90 0f 0f 00 f0 90 90 90 90 90 f0 00 0f 00 ]])
+table.insert(names, "/package/data/Miku/s2.pic")
+table.insert(values, [[pic|10|13|00 00 e0 90 90 90 90 90 90 90 e0 00 00 00 00 90 e0 90 90 90 90 90 e0 90 00 00 00 90 90 90 40 40 40 40 40 90 90 00 00 00 90 90 40 a0 a0 40 a0 a0 40 90 90 00 90 90 00 40 f0 a0 40 f0 a0 40 00 90 90 90 90 00 40 40 40 40 40 40 40 00 90 90 90 90 00 f0 90 40 40 40 90 f0 00 90 90 90 00 f0 f0 f0 90 f0 90 f0 f0 f0 90 90 90 0f 0f 40 f0 90 90 90 f0 40 00 90 90 0f 0f 00 f0 90 90 90 90 90 f0 00 0f 00 ]])
+table.insert(names, "/package/data/Miku/up.pic")
+table.insert(values, [[pic|10|13|00 00 e0 90 90 90 90 90 90 90 e0 00 00 00 00 90 e0 90 90 90 90 90 e0 90 00 00 00 00 90 90 40 40 40 40 40 90 90 00 00 00 00 90 40 a0 a0 40 a0 a0 40 90 00 00 00 90 90 40 a0 f0 40 a0 f0 40 90 90 00 00 90 90 40 40 40 40 40 40 40 90 90 00 00 90 90 f0 90 40 40 40 90 f0 90 90 00 00 90 f0 f0 f0 90 f0 90 f0 f0 90 90 00 00 90 0f 40 f0 90 90 90 f0 40 90 90 00 0f 0f 00 f0 90 90 90 90 90 f0 00 0f 00 ]])
+table.insert(names, "/package/data/notepad.app")
+table.insert(values, [[local app = application.Create(os.getProcessInfo(os.getCurrentProcess()), os)
+local mainForm = form.Create("Notepad")
+local currentFileName = ""
+
+
+app:addForm(mainForm, "Notepad")
+mainForm:show()
+
+
+local textArea = widgets.TextArea.Create(mainForm, "textArea", widgets)
+textArea.left = 1
+textArea.top = 2
+textArea.height = app.canvas.size.y - 2
+textArea.width = app.canvas.size.x
+textArea.text = ""
+
+
+
+
+function loadFile(fileName)
+	local file = fs.open(fileName, "r")
+	local text = ""
+
+	if file ~= nil then
+		text = file.readAll()
+		file.close()
+	end
+
+	currentFileName = fileName
+	mainForm.name = "[" .. fileName .. "] - Notepad"
+	os.sendMessage(hwnd, {msg = "refresh"})
+
+	textArea:setText(text)
+	textArea:refresh()
+end
+
+
+function saveFile(fileName)
+	local file = fs.open(fileName, "w")
+	local text = textArea:getText()
+
+	if file ~= nil then
+		file.write(text)
+		file.close()
+	end
+
+	currentFileName = fileName
+	mainForm.name = "[" .. fileName .. "] - Notepad"
+end
+
+
+
+
+
+
+local saveDialog = widgets.dialogs.SaveDialog.Create(mainForm, "SaveDialog")
+
+saveDialog.onExecute = function(sender)
+	local fileName = string.gsub(sender.fileName, "home:/", "", 1)
+	saveFile(fileName)
+end
+
+
+
+local openDialog = widgets.dialogs.OpenDialog.Create(mainForm, "OpenDialog")
+
+openDialog.onExecute = function(sender)
+	local fileName = string.gsub(sender.fileName, "home:/", "", 1)
+	loadFile(fileName)
+end
+
+
+
+function file_newClick()
+	os.shell.run("notepad")
+	app:terminate()
+end
+
+function file_openClick()
+	openDialog:execute()
+end
+
+function file_saveClick()
+	if currentFileName ~= "" then
+		saveFile(currentFileName)
+	else
+		saveDialog:execute()
+	end
+end
+
+function file_saveAsClick()
+	saveDialog:execute()
+end
+
+function file_exitClick()
+	app:terminate()
+end
+
+
+
+
+local fileMenu = widgets.PopupMenu.Create()
+table.insert(fileMenu.items, widgets.PopupMenu.CreateItem("New", function(sender) file_newClick() end))
+table.insert(fileMenu.items, widgets.PopupMenu.CreateItem("Open", function(sender) file_openClick() end))
+table.insert(fileMenu.items, widgets.PopupMenu.CreateItem("Save", function(sender) file_saveClick() end))
+table.insert(fileMenu.items, widgets.PopupMenu.CreateItem("-", nil))
+table.insert(fileMenu.items, widgets.PopupMenu.CreateItem("Save As..", function(sender) file_saveAsClick() end))
+table.insert(fileMenu.items, widgets.PopupMenu.CreateItem("-", nil))
+table.insert(fileMenu.items, widgets.PopupMenu.CreateItem("Exit", function(sender) file_exitClick() end))
+
+local helpMenu = widgets.PopupMenu.Create()
+table.insert(helpMenu.items, widgets.PopupMenu.CreateItem("About", function(sender) os.shell.run("winver Notepad") end))
+
+
+local menu = widgets.MenuBar.Create(mainForm, "Menu")
+table.insert(menu.items, widgets.MenuBar.CreateItem("File", function(sender) widgets.popupMenu(fileMenu, sender.left, sender.top + 2) end))
+table.insert(menu.items, widgets.MenuBar.CreateItem("Help", function(sender) widgets.popupMenu(helpMenu, sender.left, sender.top + 2) end))
+
+
+
+
+if params[2] ~= nil then
+	loadFile(string.gsub(params[2], "home:/", "", 1))
+end
+
+
+
+
+app:run()]])
+table.insert(names, "/package/data/readme.txt")
+table.insert(values, [[
+CCWin - Terms and conditions
+
+1.    Preamble: This Agreement, signed on Jun 4, 2015 (hereinafter: Effective Date) governs the relationship between User, a Business Entity, (hereinafter: Licensee) and Puzzletime, a private person whose principal place of business is Moscow, Russian Federation (hereinafter: Licensor). This Agreement sets the terms, rights, restrictions and obligations on using CCWin (hereinafter: The Software) created and owned by Licensor, as detailed herein
+
+2.    License Grant: Licensor hereby grants Licensee a Sublicensable, Non-assignable & non-transferable, Pepetual, Non-commercial, Including the rights to distribute derivative works, Non-exclusive license, all with accordance with the terms set forth and other legal restrictions set forth in 3rd party software used while running Software.
+
+    2.1    Limited: Licensee may use Software for the purpose of:
+        2.1.1    Running Software on Licensee’s Website[s] and Server[s];
+        2.1.2    Allowing 3rd Parties to run Software on Licensee’s Website[s] and Server[s];
+        2.1.3    Publishing Software’s output to Licensee and 3rd Parties;
+        2.1.4    Distribute verbatim copies of Software’s output (including compiled binaries);
+        2.1.5    Modify Software to suit Licensee’s needs and specifications.
+    2.2    This license is granted perpetually, as long as you do not materially breach it.
+
+    2.3    Non Assignable & Non-Transferable: Licensee may not assign or transfer his rights and duties under this license.
+
+    2.4    Non-Commercial: Licensee may not use Software for commercial purposes. for the purpose of this license, commercial purposes means that a 3rd party has to pay in order to access Software or that the Website that runs Software is behind a paywall.
+
+    2.5    Including the right to Distribute Derivative Works: Licensee may create and distribute derivative works based on Software, including amending Software’s source code, modifying it, integrating it into a larger work or removing portions of Software, as long as credit to the Licensor is granted and that redistribution is made under the terms of this license.
+
+    2.6    With Attribution Requirements﻿: Mentioning in the "About" screen (and in documentation, if present)
+
+    2.7    [Multi-]Site: Licensee may use Software on unlimited server[s] and unlimited website[s], for Licensee’s websites only 
+3.    Term & Termination: The Term of this license shall be until terminated. Licensor may terminate this Agreement, including Licensee’s license in the case where Licensee :
+
+    3.1    became insolvent or otherwise entered into any liquidation process; or
+
+    3.2    exported The Software to any jurisdiction where licensor may not enforce his rights under this agreements in; or
+
+    3.3    Licensee was in breach of any of this license's terms and conditions and such breach was not cured, immediately upon notification; or
+
+    3.4    Licensee in breach of any of the terms of clause 2 to this license; or
+
+    3.5    Licensee otherwise entered into any arrangement which caused Licensor to be unable to enforce his rights under this License.
+4.    Payment: In consideration of the License granted under clause 2, Licensee shall pay Licensor a fee, via Credit-Card, PayPal or any other mean which Licensor may deem adequate. Failure to perform payment shall construe as material breach of this Agreement.
+
+5.    Upgrades, Updates and Fixes: Licensor may provide Licensee, from time to time, with Upgrades, Updates or Fixes, as detailed herein and according to his sole discretion. Licensee hereby warrants to keep The Software up-to-date and install all relevant updates and fixes, and may, at his sole discretion, purchase upgrades, according to the rates set by Licensor. Licensor shall provide any update or Fix free of charge; however, nothing in this Agreement shall require Licensor to provide Updates or Fixes.
+
+    5.1    Upgrades: for the purpose of this license, an Upgrade shall be a material amendment in The Software, which contains new features and or major performance improvements and shall be marked as a new version number. For example, should Licensee purchase The Software under version 1.X.X, an upgrade shall commence under number 2.0.0.
+
+    5.2    Updates: for the purpose of this license, an update shall be a minor amendment in The Software, which may contain new features or minor improvements and shall be marked as a new sub-version number. For example, should Licensee purchase The Software under version 1.1.X, an upgrade shall commence under number 1.2.0.
+
+    5.3    Fix: for the purpose of this license, a fix shall be a minor amendment in The Software, intended to remove bugs or alter minor features which impair the The Software's functionality. A fix shall be marked as a new sub-sub-version number. For example, should Licensee purchase Software under version 1.1.1, an upgrade shall commence under number 1.1.2.
+
+6.    Support: Software is provided under an AS-IS basis and without any support, updates or maintenance. Nothing in this Agreement shall require Licensor to provide Licensee with support or fixes to any bug, failure, mis-performance or other defect in The Software.
+
+    6.1    Bug Notification: Licensee may provide Licensor of details regarding any bug, defect or failure in The Software promptly and with no delay from such event; Licensee shall comply with Licensor's request for information regarding bugs, defects or failures and furnish him with information, screenshots and try to reproduce such bugs, defects or failures.
+
+    6.2    Feature Request: Licensee may request additional features in Software, provided, however, that (i) Licensee shall waive any claim or right in such feature should feature be developed by Licensor; (ii) Licensee shall be prohibited from developing the feature, or disclose such feature request, or feature, to any 3rd party directly competing with Licensor or any 3rd party which may be, following the development of such feature, in direct competition with Licensor; (iii) Licensee warrants that feature does not infringe any 3rd party patent, trademark, trade-secret or any other intellectual property right; and (iv) Licensee developed, envisioned or created the feature solely by himself.
+
+7.    Liability:  To the extent permitted under Law, The Software is provided under an AS-IS basis. Licensor shall never, and without any limit, be liable for any damage, cost, expense or any other payment incurred by Licensee as a result of Software’s actions, failure, bugs and/or any other interaction between The Software  and Licensee’s end-equipment, computers, other software or any 3rd party, end-equipment, computer or services.  Moreover, Licensor shall never be liable for any defect in source code written by Licensee when relying on The Software or using The Software’s source code.
+
+8.    Warranty:  
+
+    8.1    Intellectual Property: Licensor hereby warrants that The Software does not violate or infringe any 3rd party claims in regards to intellectual property, patents and/or trademarks and that to the best of its knowledge no legal action has been taken against it for any infringement or violation of any 3rd party intellectual property rights.
+
+    8.2    No-Warranty: The Software is provided without any warranty; Licensor hereby disclaims any warranty that The Software shall be error free, without defects or code which may cause damage to Licensee’s computers or to Licensee, and that Software shall be functional. Licensee shall be solely liable to any damage, defect or loss incurred as a result of operating software and undertake the risks contained in running The Software on License’s Server[s] and Website[s].
+
+    8.3    Prior Inspection: Licensee hereby states that he inspected The Software thoroughly and found it satisfactory and adequate to his needs, that it does not interfere with his regular operation and that it does meet the standards and scope of his computer systems and architecture. Licensee found that The Software interacts with his development, website and server environment and that it does not infringe any of End User License Agreement of any software Licensee may use in performing his services. Licensee hereby waives any claims regarding The Software's incompatibility, performance, results and features, and warrants that he inspected the The Software.
+
+9.    No Refunds: Licensee warrants that he inspected The Software according to clause 7(c) and that it is adequate to his needs. Accordingly, as The Software is intangible goods, Licensee shall not be, ever, entitled to any refund, rebate, compensation or restitution for any reason whatsoever, even if The Software contains material flaws.
+
+10.    Indemnification: Licensee hereby warrants to hold Licensor harmless and indemnify Licensor for any lawsuit brought against it in regards to Licensee’s use of The Software in means that violate, breach or otherwise circumvent this license, Licensor's intellectual property rights or Licensor's title in The Software. Licensor shall promptly notify Licensee in case of such legal action and request Licensee’s consent prior to any settlement in relation to such lawsuit or claim.
+
+11.    Governing Law, Jurisdiction: Licensee hereby agrees not to initiate class-action lawsuits against Licensor in relation to this license and to compensate Licensor for any legal fees, cost or attorney fees should any claim brought by Licensee against Licensor be denied, in part or in full. 
+]])
+table.insert(names, "/package/package.ini")
+table.insert(values, [[[package]
+title = %APPNAME% %VERSION%
+path = %PATH%
+obligatory = true]])
+table.insert(names, "/package/shortcuts.ini")
+table.insert(values, [[[shortcut]
+location = %DESKTOP%/New Notepad.lnk
+path = %PATH%/notepad.lnk
+icon = %SYSTEM_FILES%/pic.pic]])
+table.insert(names, "/setup.ini")
+table.insert(values, [[[application]
+name = TestApplication
+version = 1.0.0
+company = MyCorp
+path = %PROGRAM%/%COMPANY%/%APPNAME%/%VERSION%/
+list = true
+header = logo.pic
+bg = white
+override = true
+uninstall = true
+
+[extentions]
+exe = notepad "%FILENAME%"
+
+[license]
+show = true
+file = license0.txt
+blindly = false
+
+[path]
+show = true
+editable = true
+
+[components]
+show = true
+default = package
+
+[after]
+run = true
+cmd = winver
+
+[run_installed]
+show = true
+checked = true
+cmd = explorer "%PATH%/"
+
+[show_readme]
+show = false
+checked = true
+cmd = notepad "%PATH%/readme.txt"]])
+local args = {...}
+local path = args[2] or "/temp"
+if not xwin then
+	path = args[1] or "/temp"
+end
+
+function _utStrSplit(self, sep)
+	local sep, fields = sep or ":", {}
+	local pattern = string.format("([^%s]+)", sep)
+	self:gsub(pattern, function(c) fields[#fields+1] = c end)
+	return fields
+end
+
+print("Unpacking LRC...")
+
+fs.makeDir(path)
+for i = 1, #names do
+	local l = _utStrSplit(names[i], "/")
+	local p = ""
+	if #l > 1 then
+		pcall(function()
+			for i = 1, #p - 2 do
+				p = p .. "/" .. l[i]
+			end
+		end)
+	end
+
+	pcall(function()
+		print("Unpacking " .. names[i] .. "...")
+		fs.makeDir(path .. "/" .. p)
+		local file = fs.open(path .. "/" .. names[i], "w")
+		values[i] = string.gsub(values[i], "\\%[\\%[", "%[%[")
+		values[i] = string.gsub(values[i], "\\%]\\%]", "%]%]")
+		file.write(values[i])
+		file.close()
+	end)
+end
+print("Done!")
+return names, values

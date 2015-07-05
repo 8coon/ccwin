@@ -176,6 +176,8 @@ table.insert(startMenu.items, widgets.PopupMenu.CreateItem("Documents", function
 	"/userdata/Documents/\"") end))
 table.insert(startMenu.items, widgets.PopupMenu.CreateItem("Programs", function(sender) os.shell.run("explorer \"" .. os.getSystemPath() .. 
 	"/userdata/ProgramGroups/Programs/\"") end))
+table.insert(startMenu.items, widgets.PopupMenu.CreateItem("-", nil))
+table.insert(startMenu.items, widgets.PopupMenu.CreateItem("Update Center", function(sender) os.shell.run("update") end))
 table.insert(startMenu.items, widgets.PopupMenu.CreateItem("   ", nil))
 
 

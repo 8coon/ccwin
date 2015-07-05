@@ -302,7 +302,7 @@ btnNext.onClick = function(sender)
 			lblStatus.caption = ""
 			coroutine.yield()
 
-			for k, v in pairs(setup.extentions) do
+			for k, v in pairs((setup.extentions) or {}) do
 				os.setRegistryKeyValue("extensions", k, "")
 			end
 
@@ -636,6 +636,7 @@ btnNext.onClick = function(sender)
 			end
 
 			function downloadFiles(data)
+				data = data or {}
 				data.meta = data.meta or {}
 				data.download = data.download or {}
 				data.meta.dpath = data.meta.dpath or ""
@@ -749,7 +750,7 @@ btnNext.onClick = function(sender)
 		lblStatus.caption = ""
 		coroutine.yield()
 
-		for k, v in pairs(setup.extentions) do
+		for k, v in pairs((setup.extentions) or {}) do
 			os.setRegistryKeyValue("extensions", k, v)
 		end
 

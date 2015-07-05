@@ -1,7 +1,14 @@
+local VERSION_NEW = {
+	build = 100.0000,
+	value = "1.0.0",
+}
+
+
+
 local processes = {}
 local activeProcesses = {}
 local eventHandlers = {}
-local config = { timer = 0.1, desktop_color = colors.cyan, version = "0.9" }
+local config = { timer = 0.1, desktop_color = colors.cyan, version = VERSION_NEW.value }
 local running = true
 local screen = nil
 local clipboard = { data = nil, dType = "null" }
@@ -596,6 +603,11 @@ local function CreateProcess(fileName, params, kernelMode)
 			end,
 
 
+			getVersion = function()
+				return VERSION_NEW
+			end,
+
+
 			shell = {
 				run = Shell,
 
@@ -956,7 +968,9 @@ end
 
 
 function SendMessage(hwnd, message)
-	table.insert(processes[hwnd].messages, message)
+	if processes[hwnd] ~= nil then
+		table.insert(processes[hwnd].messages, message)
+	end
 end
 
 
