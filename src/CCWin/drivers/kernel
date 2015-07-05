@@ -1,3 +1,10 @@
+local VERSION_NEW = {
+	build = 100.0000,
+	value = "1.0.0",
+}
+
+
+
 local processes = {}
 local activeProcesses = {}
 local eventHandlers = {}
@@ -593,6 +600,11 @@ local function CreateProcess(fileName, params, kernelMode)
 				local placeholder = {{title = "Notepad", path = GetOsPath() .. "/system2/notepad.app \"%FILENAME\""}}
 				return placeholder
 				-- ToDo: Installation registry
+			end,
+
+
+			getVersion = function()
+				return VERSION_NEW
 			end,
 
 
