@@ -88,10 +88,10 @@ end
 
 fs = {
 	list = function(path)
-		l = _fs.list(fn(path))
-		result = []
+		local l = _fs.list(fn(path))
+		local result = {}
 		for i, v in ipairs(l) do
-			if not (string.lower(v) == ".ds_store") then
+			if not (user.stringends(string.lower(v), ".ds_store")) then
 				table.insert(result, v)
 			end
 		end
@@ -1861,5 +1861,6045 @@ table.insert(values, [[if _EMULATED then
 else
 	shell.run("winldr")
 end]])
-table.insert(names, "/system/.DS_Store")
+table.insert(names, "/system/application")
 table.insert(values, [[
+
+function Create(processInfo, _os)
+	local _canvas = processInfo.canvas
+	local _hwnd = processInfo.hwnd
+	_canvas.autoScroll = false
+
+	--return canvas
+
+	local result = {
+		hwnd = _hwnd,
+		canvas = _canvas,
+		os = _os,
+		forms = { },
+		activeForm = nil,
+		running = true,
+		info = processInfo,
+		ctrlCount = 0,
+		threads = {},
+
+
+		run = function(self)
+			while self.running do
+				if self.ctrlCount > 0 then self.ctrlCount = self.ctrlCount - 0.1 end
+				if self.ctrlCount < 0 then self.ctrlCount = 0 end
+				
+				local threadsRemoval = {}
+
+				for k, v in pairs(self.threads) do
+					if v ~= nil then
+						if coroutine.status(v) == "suspended" then
+							status, err = coroutine.resume(v)
+							if not status then
+								error(tostring(err))
+							end
+						else
+							table.insert(threadsRemoval, k)
+						end
+					end
+				end
+
+				local threads = {}
+				for k, v in pairs(threadsRemoval) do
+					self.threads[k] = nil
+				end
+				for k, v in pairs(self.threads) do
+					if v ~= nil then
+						table.insert(threads, v)
+					end
+				end
+				self.threads = threads
+				local message = self.os.getMessage(self.hwnd)
+
+				if message ~= nil then
+					if self.activeForm ~= nil then
+						if (message.msg == "key") or (message.msg == "char") then
+							if self.activeForm.keyPress ~= nil then
+								self.activeForm:keyPress(message.key, message.char)
+							end
+
+							if (message.key == 29) or (message.key == 157) then
+								self.ctrlCount = 1
+							end
+						end
+
+						if message.msg == "mouse_click" then
+							if self.activeForm.mouseClick ~= nil then
+								self.activeForm:mouseClick(message.button, message.x, message.y)
+							end
+						end
+
+						if message.msg == "mouse_drag" then
+							if self.activeForm.mouseDrag ~= nil then
+								self.activeForm:mouseDrag(message.button, message.x, message.y)
+							end
+						end
+
+						if self.activeForm.onMessage ~= nil then
+							self.activeForm:onMessage(message)
+						end
+
+						if (self.os.getActiveProcess() == self.hwnd) or (message.msg == "create") or (message.msg == "refresh") then
+							self.os.hideCaret()
+							self.activeForm:refresh()
+						end
+					end
+				end
+			end
+
+			self.os.hideCaret()
+		end,
+
+
+		addForm = function(self, form, name)
+			self.forms[name] = form
+			form.parent = self
+			form.name = name
+		end,
+
+
+		terminate = function(self)
+			self.running = false
+			self.canvas.cursorBlink = false
+			self.os.hideCaret()
+			self.os.sendMessage(self.hwnd, { msg = "refresh" })
+		end,
+
+
+		showMessage = function(self, message)
+			self.os.messageBox("message", message, self.activeForm.name, {{ caption = "OK", onClick = function(sender) self.os.hideMessageBox() end }}, "defText")
+		end,
+
+
+		isCtrlDown = function(self)
+			if self.ctrlCount > 0 then return true else return false end
+		end,
+
+
+		createThread = function(self, proc)
+			if type(proc) ~= "function" then
+				return false
+			end
+			table.insert(self.threads, coroutine.create(proc))
+			return true
+		end,
+	}
+
+	return result
+end
+
+
+function Create2()
+	return "Success."
+end]])
+table.insert(names, "/system/commonDialogs/openDialog")
+table.insert(values, [[
+function Create(_parent, name)
+	local dialog = {
+		parent = _parent,
+		left = 0,
+		top = 0, 
+		height = 0,
+		width = 0,
+		focused = false,
+		visible = true,
+		dialogForm = nil,
+		title = "Open File...",
+		initialDir = "home:/",
+		lastActiveForm = nil,
+		fileName = nil,
+		onExecute = nil,
+		dirOnly = false,
+
+
+		refresh = function(self)
+			if self.dialogForm ~= nil then
+				self.dialogForm.parent = self.parent.parent
+				self.dialogForm:refresh()
+			end
+		end,
+
+
+		execute = function(self)
+			self.lastActiveForm = self.parent.parent.activeForm
+
+			self.dialogForm = form.Create("CommonDialogForm")
+			self.dialogForm.parent = self.parent.parent
+			self.parent.parent:addForm(self.dialogForm, "CommonDialogForm")
+			self.dialogForm:show()
+
+			self.dialogForm.name = self.title
+			self.dialogForm.controlBox = false
+			self.dialogForm.bgcolor = colors.white
+
+
+			local listView = fileListView.Create(self.dialogForm, "listView")
+			listView.bgcolor = colors.white
+			listView.top = 1 + 3
+			listView.left = 1
+			listView.width = self.parent.parent.canvas.size.x
+			listView.height = self.parent.parent.canvas.size.y - 1 - 3   - 3
+			listView.lastTime = 0
+
+			listView.path = self.initialDir
+			listView.dirOnly = self.dirOnly
+			listView:refreshList()
+
+
+			self.parent.parent.os.sendMessage(self.parent.parent.hwnd, { msg = "refresh" })
+
+			listView.onClick = function(sender)
+				local time = os.time()
+
+				if #sender.selectedList > 0 then
+					sender.parent.widgets["Panel2"].widgets["FileName"].text = sender.list[sender.selectedList[1\]-\]-.name
+					sender.parent.widgets["Panel2"].widgets["FileName"]:refresh()
+				end
+
+				if (time - sender.lastTime) * 10 < 0.1 then
+					local selected = listView.selectedList
+					if #selected > 0 then
+						listView:navigate(listView.list[selected[1\]-\]-.name, true, self.parent.parent.os)
+						listView.selectedList = {}
+						sender.parent.widgets["Panel2"].widgets["FileName"].text = ""
+					end
+				end
+
+				sender.lastTime = time
+			end
+
+			listView.onNavigate = function(sender, path)
+				sender.parent.widgets["Panel"].widgets["AddressBar"].text = path
+				sender.selectedList = {}
+			end
+
+
+
+			local panel1 = panel.Create(self.dialogForm, "Panel")
+			panel1.top = 1
+			panel1.left = 0
+			panel1.width = self.parent.parent.canvas.size.x
+			panel1.height = 3
+			panel1.bgcolor = colors.lightGray
+
+
+			local panel2 = panel.Create(self.dialogForm, "Panel2")
+			panel2.top = 1 + panel1.height + listView.height
+			panel2.left = 0
+			panel2.width = self.parent.parent.canvas.size.x
+			panel2.height = 3
+			panel2.bgcolor = colors.lightGray
+
+
+			local fnLabel = label.Create(panel2, "FnLabel")
+			fnLabel.left = 2
+			fnLabel.top = 2
+			fnLabel.height = 1
+			fnLabel.align = "left"
+			fnLabel.caption = "File Name:"
+			fnLabel.width = string.len(fnLabel.caption) + 1
+
+			local fileName = edit.Create(panel2, "FileName")
+			fileName.left = fnLabel.left + fnLabel.width
+			fileName.top = 2
+			fileName.height = 1
+			fileName.width = self.parent.parent.canvas.size.x - fileName.left - 16 - 2
+			fileName.text = ""
+
+			--fileName.onRefresh = function(sender)
+				--sender.text = string.gsub(sender.text, "%/%/", "%/")
+				--if #listView.selectedList > 0 then
+					--sender.text = listView.list[listView.selectedList[1\]-\]-.name
+				--else
+					--sender.text = ""
+				--end
+			--end
+
+
+			local openButton = button.Create(panel2, "OpenButton")
+			openButton.left = fileName.left + fileName.width + 1
+			openButton.top = 2
+			openButton.height = 1
+			openButton.width = 8
+			--openButton.forecolor2 = colors.white
+			openButton.align = "center"
+			openButton.caption = " Open"
+
+			openButton.onClick = function(sender)
+				local fn = sender.parent.parent.widgets["Panel"].widgets["AddressBar"].text .. "/" .. fileName.text
+				fn = string.gsub(fn, "//", "/")
+				fn = string.gsub(fn, "home:/", "", 1)
+
+				if (fs.exists(fn) and (not fs.isDir(fn))) or (fs.exists(fn) and self.dirOnly) then
+					self.fileName = "home:/" .. fn
+					self.dialogForm = nil
+					self.lastActiveForm.parent.forms["CommonDialogForm"] = nil
+					self.lastActiveForm:show()
+					--self.lastActiveForm.parent.activeForm = self.lastActiveForm
+					self.parent.parent.os.sendMessage(self.parent.parent.hwnd, { msg = "refresh" })
+
+					if self.onExecute ~= nil then
+						self:onExecute()
+					end
+				else
+					local os2 = sender.parent.parent.parent.os
+					os2.messageBox("message", "This file does not exist!\nPlease select another file.", "Warning", 
+						{ 
+							{caption = "OK", onClick = function(sender) os2.hideMessageBox() end } 
+						}, "defText")
+				end
+			end
+
+
+			local cancelButton = button.Create(panel2, "CancelButton")
+			cancelButton.left = openButton.left + openButton.width + 1
+			cancelButton.top = 2
+			cancelButton.height = 1
+			cancelButton.width = 8
+			--openButton.forecolor2 = colors.white
+			cancelButton.align = "center"
+			cancelButton.caption = " Cancel"
+
+			cancelButton.onClick = function(sender)
+				self.fileName = nil
+				--self.parent.parent.forms["OpenDialogForm"] = nil
+				self.dialogForm = nil
+				self.lastActiveForm:show()
+			end
+
+
+
+			local backButton = button.Create(panel1, "BackButton")
+			backButton.left = 2
+			backButton.top = 2
+			backButton.height = 1
+			backButton.width = 9
+			backButton.forecolor2 = colors.white
+			backButton.align = "center"
+			backButton.caption = " <- Back"
+
+			backButton.onClick = function(sender)
+				listView:goBack()
+			end
+
+
+			local addressBar = edit.Create(panel1, "AddressBar")
+			addressBar.left = 2 + 9 + 1
+			addressBar.top = 2
+			addressBar.height = 1
+			addressBar.width = self.parent.parent.canvas.size.x - 2 - 9 - 1 - 5
+			addressBar.text = self.initialDir
+
+			addressBar.onRefresh = function(sender)
+				sender.text = string.gsub(sender.text, "%/%/", "%/")
+			end
+
+
+
+			local goButton = button.Create(panel1, "GoButton")
+			goButton.left = 2 + 9 + 1 + addressBar.width + 1
+			goButton.top = 2
+			goButton.height = 1
+			goButton.width = 4
+			goButton.forecolor2 = colors.white
+			goButton.align = "center"
+			goButton.caption = " Go"
+
+			goButton.onClick = function(sender)
+				if addressBar.text:find("home:/") then
+					listView:navigate(addressBar.text)
+				else
+					listView:navigate("home:/" .. addressBar.text)
+				end
+			end
+		end,
+	}
+
+	_parent.widgets[name] = dialog
+	_parent.lastZOrder = _parent.lastZOrder + 1
+	dialog.zOrder = _parent.lastZOrder
+	return dialog
+end]])
+table.insert(names, "/system/commonDialogs/saveDialog")
+table.insert(values, [[
+function Create(_parent, name)
+	local saveDialog = openDialog.Create(_parent, name)
+
+	saveDialog.title = "Save As..."
+	saveDialog.oldExecute = saveDialog.execute
+
+	saveDialog.execute = function(self)
+		self:oldExecute()
+
+		self.dialogForm.widgets["Panel2"].widgets["OpenButton"].caption = " Save"
+
+		self.dialogForm.widgets["Panel2"].widgets["OpenButton"].onClick = function(sender)
+			local fn = sender.parent.parent.widgets["Panel"].widgets["AddressBar"].text .. "/" .. 
+				sender.parent.parent.widgets["Panel2"].widgets["FileName"].text
+			fn = string.gsub(fn, "//", "/")
+			fn = string.gsub(fn, "home:/", "", 1)
+
+
+			if fs.exists(fn) and (not fs.isDir(fn)) then
+				local os2 = sender.parent.parent.parent.os
+				os2.messageBox("message", "This file already exists.\nOverride?", "Warning", 
+					{ 
+						{caption = "Yes", onClick = function(sender2) 
+							os2.hideMessageBox()
+
+							self.fileName = "home:/" .. fn
+							self.dialogForm = nil
+							self.lastActiveForm.parent.forms["CommonDialogForm"] = nil
+							self.lastActiveForm:show()
+							--self.lastActiveForm.parent.activeForm = self.lastActiveForm
+
+							self.parent.parent.os.sendMessage(self.parent.parent.hwnd, { msg = "refresh" })
+
+							if self.onExecute ~= nil then
+								self:onExecute()
+							end
+						end },
+						{caption = "No", onClick = function(sender) os2.hideMessageBox() end } 
+					}, "defText")
+			else
+				if fs.isDir(fn) then
+					self.dialogForm.widgets["listView"]:navigate("home:/" .. fn)
+				else
+					self.fileName = "home:/" .. fn
+					self.dialogForm = nil
+					self.lastActiveForm:show()
+					--self.lastActiveForm.parent.activeForm = self.lastActiveForm
+
+					if self.onExecute ~= nil then
+						self:onExecute()
+					end
+
+					self.parent.parent.os.sendMessage(self.parent.parent.hwnd, { msg = "refresh" })
+				end
+			end
+		end
+	end
+
+	--kiMain.c -o kiMain.bin -Wl,--subsystem,native
+
+
+	return saveDialog
+end]])
+table.insert(names, "/system/dialogs")
+table.insert(values, [[
+function MessageBoxCreate(message, canvas, buttons)
+	local messageBox = {
+		message = message,
+		canvas = canvas,
+		height = 8,
+		width = 32,
+		widgets = {},
+		buttonsLib = buttons,
+		parent = {
+			canvas = canvas
+		},
+		lastZOrder = 0,
+		focusedWidget = nil,
+
+
+		refresh = function(self)
+			if self.canvas ~= nil then
+				self.canvas:fillrect(math.floor(self.canvas.size.x / 2) - math.floor(self.width / 2) + 1, math.floor(self.canvas.size.y / 2)  - math.floor(self.height / 2) + 1, 
+					self.width, self.height, colors.black)
+				self.canvas:fillrect(math.floor(self.canvas.size.x / 2) - math.floor(self.width / 2), math.floor(self.canvas.size.y / 2)  - math.floor(self.height / 2), 
+					self.width, self.height, colors.blue)
+				self.canvas:fillrect(math.floor(self.canvas.size.x / 2) - math.floor(self.width / 2) + 1, math.floor(self.canvas.size.y / 2)  - math.floor(self.height / 2) + 1, 
+					self.width - 2, self.height - 2, colors.lightGray)
+
+				self.canvas.bgcolor = colors.lightGray
+				self.canvas.forecolor = colors.black
+
+				local texts = user.split(self.message.text, "\n")
+
+				for i, v in ipairs(texts) do
+					if i <= 3 then
+						self.canvas:setCursorPos(math.floor(self.canvas.size.x / 2) - math.floor(self.width / 2) + 2, math.floor(self.canvas.size.y / 2)  -
+							math.floor(self.height / 2) + 1 + i)
+						local str = v
+
+						if string.len(str) > self.width - 3 then
+							str = string.sub(str, 1, self.width - 5) .. ".."
+						end
+
+						self.canvas:write(str)
+					end
+				end
+
+
+				local caption = self.message.caption
+				if string.len(caption) > self.width then
+					caption = string.sub(caption, 1, self.width - 2) .. ".."
+				end
+
+				self.canvas:setCursorPos(math.floor(self.canvas.size.x / 2) - math.floor(string.len(caption) / 2), math.floor(self.canvas.size.y / 2)  -
+					math.floor(self.height / 2))
+				self.canvas.bgcolor = colors.blue
+				self.canvas.forecolor = colors.white
+				self.canvas:write(caption)
+
+
+				if self.message.buttons ~= nil then
+					self.widgets = {}
+					local width = -1
+
+					if #self.message.buttons > 1 then
+						for i, v in ipairs(self.message.buttons) do
+							local w = self.buttonsLib.Create(self, i)
+							w.width = 9
+							w.left = math.floor(self.canvas.size.x / 2) - --\[-\[-math.floor(w.width / 2) -\]-\]- width
+							width = width + w.width + 1
+							w.top = math.floor(self.canvas.size.y / 2) - math.floor(self.height / 2) + self.height - 3
+							w.height = 1
+							w.caption = v.caption
+							w.onClick = v.onClick
+						end
+					else
+						local v = self.message.buttons[1]
+						local w = self.buttonsLib.Create(self, 1)
+						w.width = 9
+						w.left = math.floor(self.canvas.size.x / 2) - math.floor(w.width / 2)
+						w.top = math.floor(self.canvas.size.y / 2) - math.floor(self.height / 2) + self.height - 3
+						w.height = 1
+						w.caption = v.caption
+						w.onClick = v.onClick
+					end
+
+					self.message.buttons = nil
+				end
+
+				if self.widgets ~= nil then
+					for i, v in ipairs(self.widgets) do
+						v:refresh()
+					end
+				end
+			end
+		end,
+
+		mouseClick = function(self, button, x, y)
+			if self.widgets ~= nil then
+				for i, widget in ipairs(self.widgets) do
+					if (x >= widget.left) and (x < widget.left + widget.width) and 
+					   (y > widget.top) and (y <= widget.top + widget.height) then
+						self.focusedWidget = widget
+
+						if button == 1 then
+							if widget.onClick ~= nil then
+								widget:onClick()
+							end
+						else
+							if widget.onPopup ~= nil then
+								widget:onPopup()
+							end
+						end
+
+						if widget.onMouseClick ~= nil then
+							widget:onMouseClick(button, x, y)
+						end
+
+						if widget.mouseClick ~= nil then
+							widget:mouseClick(button, x, y)
+						end
+					end
+				end
+			end
+		end,
+
+
+		getCanvas = function(self)
+			return self.canvas
+		end
+	}
+
+
+	return messageBox
+end
+
+
+
+
+
+
+
+
+function InputBoxCreate(message, canvas, buttons)
+	local messageBox = {
+		message = message,
+		canvas = canvas,
+		height = 8,
+		width = 32,
+		widgets = {},
+		buttonsLib = buttons,
+		parent = {
+			canvas = canvas
+		},
+		lastZOrder = 0,
+		focusedWidget = nil,
+
+
+		refresh = function(self)
+			if self.canvas ~= nil then
+				self.canvas:fillrect(math.floor(self.canvas.size.x / 2) - math.floor(self.width / 2) + 1, math.floor(self.canvas.size.y / 2)  - math.floor(self.height / 2) + 1, 
+					self.width, self.height, colors.black)
+				self.canvas:fillrect(math.floor(self.canvas.size.x / 2) - math.floor(self.width / 2), math.floor(self.canvas.size.y / 2)  - math.floor(self.height / 2), 
+					self.width, self.height, colors.blue)
+				self.canvas:fillrect(math.floor(self.canvas.size.x / 2) - math.floor(self.width / 2) + 1, math.floor(self.canvas.size.y / 2)  - math.floor(self.height / 2) + 1, 
+					self.width - 2, self.height - 2, colors.lightGray)
+
+				self.canvas.bgcolor = colors.lightGray
+				self.canvas.forecolor = colors.black
+
+
+				self.canvas:setCursorPos(math.floor(self.canvas.size.x / 2) - math.floor(self.width / 2) + 2, math.floor(self.canvas.size.y / 2)  -
+							math.floor(self.height / 2) + 2)
+				self.canvas:write(self.message.text)
+
+
+				if self.widgets.edit == nil then
+					self.widgets.edit = edit.Create(self, "edit")
+					self.widgets.edit.left = math.floor((self.canvas.size.x / 2) - (self.width / 2)) + 2
+					self.widgets.edit.width = self.width - 3
+					self.widgets.edit.top = math.floor(self.canvas.size.y / 2) -
+							math.floor(self.height / 2) + 3
+					self.widgets.edit.text = self.message.defText
+				end
+
+				self.widgets.edit:refresh()
+				self.widgets.edit.focused = true
+				self.focutedWidget = self.widgets.edit
+
+
+				local caption = self.message.caption
+				if string.len(caption) > self.width then
+					caption = string.sub(caption, 1, self.width - 2) .. ".."
+				end
+
+				self.canvas:setCursorPos(math.floor(self.canvas.size.x / 2) - math.floor(string.len(caption) / 2), math.floor(self.canvas.size.y / 2)  -
+					math.floor(self.height / 2))
+				self.canvas.bgcolor = colors.blue
+				self.canvas.forecolor = colors.white
+				self.canvas:write(caption)
+
+
+				if self.message.buttons ~= nil then
+					self.widgets = {}
+					local width = -1
+
+					if #self.message.buttons > 1 then
+						for i, v in ipairs(self.message.buttons) do
+							local w = self.buttonsLib.Create(self, i)
+							w.width = 9
+							w.left = math.floor(self.canvas.size.x / 2) - --\[-\[-math.floor(w.width / 2) -\]-\]- width
+							width = width + w.width + 1
+							w.top = math.floor(self.canvas.size.y / 2) - math.floor(self.height / 2) + self.height - 3
+							w.height = 1
+							w.caption = v.caption
+							w.onClick = v.onClick
+						end
+					else
+						local v = self.message.buttons[1]
+						local w = self.buttonsLib.Create(self, 1)
+						w.width = 9
+						w.left = math.floor(self.canvas.size.x / 2) - math.floor(w.width / 2)
+						w.top = math.floor(self.canvas.size.y / 2) - math.floor(self.height / 2) + self.height - 3
+						w.height = 1
+						w.caption = v.caption
+						w.onClick = v.onClick
+					end
+
+					self.message.buttons = nil
+				end
+
+				if self.widgets ~= nil then
+					for i, v in ipairs(self.widgets) do
+						v:refresh()
+					end
+				end
+			end
+		end,
+
+		mouseClick = function(self, button, x, y)
+			if self.widgets ~= nil then
+				for i, widget in ipairs(self.widgets) do
+					if (x >= widget.left) and (x < widget.left + widget.width) and 
+					   (y > widget.top) and (y <= widget.top + widget.height) then
+						self.focusedWidget = widget
+						widget.focused = true
+
+						if button == 1 then
+							if widget.onClick ~= nil then
+								widget:onClick()
+							end
+						else
+							if widget.onPopup ~= nil then
+								widget:onPopup()
+							end
+						end
+
+						if widget.onMouseClick ~= nil then
+							widget:onMouseClick(button, x, y)
+						end
+
+						if widget.mouseClick ~= nil then
+							widget:mouseClick(button, x, y)
+						end
+					end
+				end
+			end
+		end,
+
+
+		keyPress = function(self, key, char)
+			--error(key .. " " .. char)
+			--if self.focusedWidget ~= nil then
+			--	if self.focusedWidget.keyPress ~= nil then
+			--		self.focusedWidget:keyPress(key, char)
+			--	end
+			--end
+			--error(key .. "k")
+			self.widgets.edit:keyPress(key, char)
+		end,
+
+
+		getCanvas = function(self)
+			return self.canvas
+		end
+	}
+
+
+	return messageBox
+end]])
+table.insert(names, "/system/form")
+table.insert(values, [[
+function Create(name)
+	local form = {
+		name = name,
+		parent = nil,
+		widgets = {},
+		focusedWidget = nil,
+		style = "double",
+		controlBox = true,
+		lastZOrder = 0,
+		bgcolor = colors.lightGray,
+		os = nil,
+		left = 0, --For compatibility with widgets.Panel
+		top = 0,
+		drawTitle = true,
+
+
+		refresh = function(self)
+			if self.parent ~= nil then
+				if self.drawTitle then
+					self.parent.canvas:fillrect(1, 1, self.parent.canvas.size.x, 1, colors.blue)
+					self.parent.canvas:fillrect(1, 2, self.parent.canvas.size.x, self.parent.canvas.size.y - 1, self.bgcolor)
+					self.parent.canvas:setCursorPos(2, 1)
+
+					self.parent.canvas.bgcolor = colors.blue
+					self.parent.canvas.forecolor = colors.white
+					self.parent.canvas:write(self.name)
+				else
+					self.parent.canvas:fillrect(1, 1, self.parent.canvas.size.x, self.parent.canvas.size.y - 1, self.bgcolor)
+				end
+
+				self.os = self.parent.os
+
+				if self.controlBox then
+					self.parent.canvas:setCursorPos(self.parent.canvas.size.x - 1, 1)
+					self.parent.canvas.bgcolor = colors.red
+					self.parent.canvas.forecolor = colors.white
+					self.parent.canvas:write(" X")
+
+					self.parent.canvas:setCursorPos(self.parent.canvas.size.x - 3, 1)
+					self.parent.canvas.bgcolor = colors.blue
+					self.parent.canvas.forecolor = colors.white
+					self.parent.canvas:write("- ")
+				end
+
+				if self.onRefresh ~= nil then
+					self:onRefresh()
+				end
+
+
+				t = {}
+
+				for k, v in pairs(self.widgets) do
+					table.insert(t, v)
+				end
+
+
+				local sort = function(arg1, arg2)
+					return arg1.zOrder < arg2.zOrder
+				end
+
+				table.sort(t, sort)
+
+
+				--for k, v in pairs(self.widgets) do
+				for k, v in ipairs(t) do
+					if self.focusedWidget == v then
+						v.focused = true
+					else
+						v.focused = false
+
+						if v.onRefresh ~= nil then
+							v:onRefresh()
+						end
+
+						if v.visible == true then
+							v:refresh()
+						end
+					end
+				end
+
+				if self.focusedWidget ~= nil then
+					if self.focusedWidget.onRefresh ~= nil then
+						self.focusedWidget:onRefresh()
+					end
+
+					self.focusedWidget:refresh()
+				end
+			end
+		end,
+
+
+		show = function(self)
+			if self.parent ~= nil then
+				self.parent.activeForm = self
+				self.parent.info.title = self.name
+			end
+		end,
+
+
+		mouseClick = function(self, button, x, y)
+			--\[-\[-self.parent.canvas.cursorPos.x = 1
+			self.parent.canvas.cursorPos.y = 2
+
+			self.parent.canvas:write(x)
+			self.parent.canvas:write(" ")
+			self.parent.canvas:write(y)\]-\]-
+			self.focusedWidget = nil
+
+			if self.controlBox then
+				if (x == self.parent.canvas.size.x) and (y == 1) then
+					if self.onTerminate ~= nil then
+						if self:onTerminate() then
+							self.parent:terminate()
+						end
+					else
+						self.parent:terminate()
+					end
+				end
+
+				if (x == self.parent.canvas.size.x - 3) and (y == 1) then
+					self.parent.os.setActiveProcess(-1)
+				end
+			end
+
+
+			if --\[-\[-self.focusedWidget ~= nil\]-\]- false then
+				local widget = self.focusedWidget
+				if (x >= widget.left) and (x <= widget.left + widget.width) and 
+					(y > widget.top) and (y <= widget.top + widget.height) then
+					if button == 1 then
+						if widget.onClick ~= nil then
+							widget:onClick()
+						end
+					else
+						if widget.onPopup ~= nil then
+							widget:onPopup()
+						end
+					end
+
+					if widget.onMouseClick ~= nil then
+						widget:onMouseClick(button, x, y)
+					end
+
+					if widget.mouseClick ~= nil then
+						widget:mouseClick(button, x, y)
+					end
+				end
+			end
+
+			for name, widget in pairs(self.widgets) do
+				if (x >= widget.left) and (x < widget.left + widget.width) and 
+					(y > widget.top) and (y <= widget.top + widget.height) then
+					self.focusedWidget = widget
+
+
+					if widget.onMouseClick ~= nil then
+						widget:onMouseClick(button, x, y)
+					end
+
+					if widget.mouseClick ~= nil then
+						widget:mouseClick(button, x, y)
+					end
+
+
+					if button == 1 then
+						if widget.onClick ~= nil then
+							widget:onClick()
+						end
+					else
+						if widget.onPopup ~= nil then
+							widget:onPopup()
+						end
+					end
+				end
+			end
+		end,
+
+
+		mouseDrag = function(self, button, x, y)
+			self.focusedWidget = nil
+
+			for name, widget in pairs(self.widgets) do
+				if (x >= widget.left) and (x < widget.left + widget.width) and 
+					(y > widget.top) and (y <= widget.top + widget.height) then
+					self.focusedWidget = widget
+
+
+					if widget.onMouseDrag ~= nil then
+						widget:onMouseDrag(button, x, y)
+					end
+
+					if widget.mouseDrag ~= nil then
+						widget:mouseDrag(button, x, y)
+					end
+				end
+			end
+		end,
+
+
+		keyPress = function(self, key, char)
+			if self.focusedWidget ~= nil then
+				if self.focusedWidget.keyPress ~= nil then
+					self.focusedWidget:keyPress(key, char)
+				end
+			end
+
+			if self.onKeyPress ~= nil then
+				self:onKeyPress(key, char)
+			end
+		end,
+
+
+		getCanvas = function(self)
+			return self.parent.canvas
+		end,
+	}
+
+	return form
+end]])
+table.insert(names, "/system/iniFiles")
+table.insert(values, [[
+function split(pString, pPattern)
+   local Table = {}  -- NOTE: use {n = 0} in Lua-5.0
+   local fpat = "(.-)" .. pPattern
+   local last_end = 1
+   local s, e, cap = pString:find(fpat, 1)
+   while s do
+      if s ~= 1 or cap ~= "" then
+		table.insert(Table,cap)
+      end
+      last_end = e+1
+      s, e, cap = pString:find(fpat, last_end)
+   end
+   if last_end <= #pString then
+      cap = pString:sub(last_end)
+      table.insert(Table, cap)
+   end
+   return Table
+end
+
+function string.starts(String,Start)
+   return string.sub(String,1,string.len(Start))==Start
+end
+
+function string.ends(String,End)
+   return End=='' or string.sub(String,-string.len(End))==End
+end
+
+
+
+
+
+
+function read(fileName)
+	local result = {}
+
+	if string.starts(fileName, "home:/") then
+		fileName = string.gsub(fileName, "home:/", "", 1)
+	end
+
+	if fs.exists(fileName) then
+		local file = fs.open(fileName, "r")
+		local data = file.readAll()
+		file.close()
+
+		data = string.gsub(data, "\r", "")
+		local lines = split(data, "\n")
+		local cat = "*"
+
+		for i, v in ipairs(lines) do
+			if (string.len(v) > 0) and (not string.starts(v, ";")) then
+				if string.starts(v, "[") and string.ends(v, "]") then
+					local catName = string.gsub(v, "%[", "")
+					catName = string.gsub(catName, "%]", "")
+					cat = catName
+				else
+					if string.find(v, "=") then
+						local values = split(v, "=")
+
+						if string.ends(values[1], " ") then
+							repeat
+								values[1] = string.sub(values[1], 1, string.len(values[1]) - 1)
+							until not (string.ends(values[1], " "))
+						end
+
+						if string.starts(values[2], " ") then
+							repeat
+								values[2] = string.sub(values[2], 2, string.len(values[2]))
+							until not (string.starts(values[2], " "))
+						end
+
+						if result[cat] == nil then result[cat] = {} end
+						if result[cat][values[1\]-\]- == nil then result[cat][values[1\]-\]- = {} end
+						result[cat][values[1\]-\]- = values[2]
+					end
+				end
+			end
+		end
+
+		return result
+	end
+end
+
+
+function write(fileName, iniData)
+	local data = ""
+
+	for k, v in pairs(iniData) do
+		data = data .. "[" .. k .. "]\r\n"
+
+		for k2, v2 in pairs(v) do
+			if v2 ~= nil then
+				data = data .. k2 .. " = " .. v2 .. "\r\n"
+			end
+		end
+	end
+
+	local file = fs.open(fileName, "w")
+	file.write(data)
+	file.close()
+end]])
+table.insert(names, "/system/pathutils")
+table.insert(values, [[
+function split(self, sep)
+    local sep, fields = sep or ":", {}
+    local pattern = string.format("([^%s]+)", sep)
+    self:gsub(pattern, function(c) fields[#fields+1] = c end)
+    return fields
+end
+
+function string.starts(String,Start)
+   return string.sub(String,1,string.len(Start))==Start
+end
+
+function string.ends(String,End)
+   return End=='' or string.sub(String,-string.len(End))==End
+end
+
+
+
+function expand(line)
+	local expanded = split(line, " ")
+	local args = {}
+	local i = 1
+
+	repeat
+		if string.starts(expanded[i], "\"") and (not string.ends(expanded[i], "\"")) then
+			local str = ""
+
+			repeat
+				str = str .. expanded[i] .. " "
+				i = i + 1
+			until string.ends(expanded[i-1], "\"")
+
+			str = string.gsub(str, "\"", "")
+			str = string.sub(str, 1, string.len(str) - 1)
+			table.insert(args, str)
+		else
+			expanded[i] = string.gsub(expanded[i], "\"", "")
+			table.insert(args, expanded[i])
+		end
+
+		i = i + 1
+	until i > #expanded
+
+	return args
+end
+
+
+function extractFilePath(fileName)
+	if string.starts(fileName, "home:/") then
+		fileName = string.gsub(fileName, "home:/", "")
+	end
+
+	fileName = string.gsub(fileName, "//", "/")
+
+
+	local data = split(fileName, "/")
+	local result = ""
+
+	if #data > 1 then
+		for i = 1, #data - 1 do
+			result = result .. data[i] .. "/"
+		end
+	else
+		result = ""
+	end
+
+	--error(result)
+	return "home:/" .. result
+end
+
+
+function extractFileName(fileName)
+	if (fileName ~= nil) and (type(fileName) == "string") then
+		local data = split(fileName, "/")
+		return data[#data]
+	else
+		return ""
+	end
+end
+
+
+function extractRealFileName(fileName)
+	if (fileName ~= nil) and (type(fileName) == "string") then
+		local data = extractFileName(split(fileName, "%."))
+		return data[1]
+	else
+		return ""
+	end
+end
+
+
+function buildUp(args)
+	local result = ""
+
+	for i, v in ipairs(args) do
+		result = result .. v .. " "
+	end
+
+	return result
+end]])
+table.insert(names, "/system/user")
+table.insert(values, [[local lastCursorBlink = false
+local oldSetCursorBlink = term.setCursorBlink
+
+function split(self, sep)
+    local sep, fields = sep or ":", {}
+    local pattern = string.format("([^%s]+)", sep)
+    self:gsub(pattern, function(c) fields[#fields+1] = c end)
+    return fields
+end
+
+function stringstarts(String,Start)
+   return string.sub(String,1,string.len(Start))==Start
+end
+
+function stringends(String,End)
+   return End=='' or string.sub(String,-string.len(End))==End
+end
+
+function round(num, idp)
+  local mult = 10^(idp or 0)
+  return math.floor(num * mult + 0.5) / mult
+end
+
+
+
+term.setCursorBlink = function(bool)
+	lastCursorBlink = bool
+	oldSetCursorBlink(bool)
+end
+
+
+
+function CreateCanvas(sizeX, sizeY)
+	local videoData = { }
+
+	for y = 1, sizeY do
+		videoData[y] = { }
+		for x = 1, sizeX do
+			videoData[y][x] = { bgcolor = colors.white, forecolor = colors.black, char = " " }
+		end
+	end
+
+
+	local canvas = {
+		size = { x = sizeX, y = sizeY },
+		cursorPos = { x = 1, y = 1 },
+		data = videoData,
+		bgcolor = colors.white,
+		forecolor = colors.black,
+		autoScroll = false,
+		showCursor = true,
+		cursorBlink = false,
+		effect = nil,
+
+
+		render = function(self, left, top, changeBlinking)
+			local cx, cy = term.getCursorPos()
+			local oldBlink = lastCursorBlink
+
+			--if changeBlinking == true then term.setCursorBlink(self.cursorBlink) end
+
+			for y = 1, self.size.y do
+				if self.data[y] ~= nil then
+					for x = 1, self.size.x do
+						if self.data[y][x] ~= nil then
+							term.setCursorPos(x + left, y + top)
+
+							if type(self.data[y][x].bgcolor) == "number" then
+								if self.effect ~= nil then
+									term.setBackgroundColor(self.effect:getbgcolor(x, y, self.data[y][x].bgcolor, self.data[y][x].forecolor, self.data[y][x].char))
+								else
+									if self.data[y][x].bgcolor > 0 then
+										term.setBackgroundColor(self.data[y][x].bgcolor)
+									end
+								end
+							end
+
+							if self.effect ~= nil then
+								term.setTextColor(self.effect:getforecolor(x, y, self.data[y][x].bgcolor, self.data[y][x].forecolor, self.data[y][x].char))
+								term.write(self.effect:getchar(x, y, self.data[y][x].bgcolor, self.data[y][x].forecolor, self.data[y][x].char))
+							else
+								term.setTextColor(self.data[y][x].forecolor)
+
+								if self.data[y][x].bgcolor ~= 0 then
+									term.write(self.data[y][x].char)
+								else
+									local x, y = term.getCursorPos()
+									term.setCursorPos(x + 1, y)
+								end
+							end
+						end
+					end
+				end
+			end
+
+			--if changeBlinking == true then term.setCursorBlink(oldBlink) end
+			--term.setCursorPos(cx, cy)
+		end,
+
+
+		clear = function(self)
+			for y = 1, self.size.y do
+				for x = 1, self.size.x do
+					self.data[y][x] = { bgcolor = self.bgcolor, forecolor = self.forecolor, char = " " }
+				end
+			end
+		end,
+
+
+		dublicate = function(self)
+			local function copyTable(t)
+				local n = {}
+				for k, v in pairs(t) do
+					if not type(v) == "table" then
+						n[k] = v
+					else
+						n[k] = copyTable(v)
+					end
+				end
+				return n
+			end
+
+			return copyTable(self)
+		end,
+
+
+		scale = function(self, sizeX, sizeY)
+			if (sizeX == self.size.x) and (sizeY == self.size.y) then
+				return self
+			end
+
+			local ratioX = self.size.x / sizeX
+			local ratioY = self.size.y / sizeY
+			local new = CreateCanvas(sizeX, sizeY)
+			local copiedX = 0
+			local copiedY = 0
+			local cx = 1
+			local cy = 1
+
+			for y = 1, sizeY do
+				copiedY = copiedY + ratioY
+				cy = cy + math.floor(copiedY)
+				copiedY = copiedY - math.floor(copiedY)
+				copiedX = 0
+				cx = 1
+				for x = 1, sizeX do
+					copiedX = copiedX + ratioX
+					cx = cx + math.floor(copiedX)
+					copiedX = copiedX - math.floor(copiedX)
+					new.data[y][x] = (self.data[cy] or {})[cx] or
+						{ bgcolor = colors.white, forecolor = colors.black, char = " " }
+				end
+			end
+
+			return new
+		end,
+
+
+		--scaleToFit = function(self, sizeX, sizeY)
+		--	if 
+		--end,
+
+
+		write = function(self, str)
+			for c in string.gmatch(str, ".") do
+				if (self.cursorPos.y >= 1) and (self.cursorPos.y <= self.size.y) and
+					(self.cursorPos.x >= 1) and (self.cursorPos.x <= self.size.x) then
+
+					self.data[self.cursorPos.y][self.cursorPos.x].char = c
+					self.data[self.cursorPos.y][self.cursorPos.x].bgcolor = self.bgcolor
+					self.data[self.cursorPos.y][self.cursorPos.x].forecolor = self.forecolor
+					self.cursorPos.x = self.cursorPos.x + 1
+
+					if self.cursorPos.x > self.size.x then
+						self.cursorPos.x = 1
+						self.cursorPos.y = self.cursorPos.y + 1
+
+						if (self.autoScroll) and (self.cursorPos.y >= self.size.y) then
+							self.size.y = self.size.y + 1
+
+							self.data[self.size.y] = {}
+							for x = 1, self.size.x do
+								self.data[self.size.y][x] = { bgcolor = self.bgcolor, forecolor = self.forecolor, char = " " }
+							end
+						end
+					end
+				end
+			end
+		end,
+
+
+		fillrect = function(self, left, top, width, height, bgcolor)
+			for y = top, top + height do
+				for x = left, left + width do
+					if (y >= 1) and (y <= self.size.y) and
+						(x >= 1) and (x <= self.size.x) then
+						self.data[y][x].bgcolor = bgcolor
+						self.data[y][x].char = " "
+					end
+				end
+			end
+		end,
+
+
+		print = function(self, str)
+			local function newLine()
+				self.cursorPos.x = 1
+				self.cursorPos.y = self.cursorPos.y + 1
+
+				if (self.autoScroll) and (self.cursorPos.y > self.size.y) then
+					self.size.y = self.size.y + 1
+					--print(self.size.y)
+					self.data[self.size.y] = {}
+					for x = 1, self.size.x do
+						self.data[self.size.y][x] = { bgcolor = self.bgcolor, forecolor = self.forecolor, char = " " }
+					end
+				end
+			end
+
+
+			local function printBlock(block)
+				local words = split(block, " ")
+
+				for i, v in ipairs(words) do
+					if i < #words then
+						if self.cursorPos.x + string.len(v) + 1 > self.size.x then
+							newLine()
+						end
+						self.write(self, v .. " ")
+					else
+						if self.cursorPos.x + string.len(v) > self.size.x then
+							newLine()
+						end
+						self.write(self, v)
+					end
+				end
+			end
+
+			str = str .. "\n"
+			blocks = split(str, "\n")
+
+			for i, v in ipairs(blocks) do
+				printBlock(v)
+				newLine()
+			end
+		end,
+
+
+		draw = function(self, left, top, graphic, arg1, transparent, transColor)
+			if transparent then
+				transColor = transColor or colors.white
+			else
+				transColor = nil
+			end
+
+			for y = 1, graphic.size.y do
+				for x = 1, graphic.size.x do
+					if (y + top >= 1) and (y + top <= self.size.y) and
+					   (x + left >= 1) and (x + left <= self.size.x) and
+					   (y >= 1) and (y <= graphic.size.y) and
+					   (x >= 1) and (x <= graphic.size.x) then
+						if (transparent and graphic.data[y][x].bgcolor ~= transColor) or not transparent then
+							if graphic.effect ~= nil then
+								self.data[y + top][x + left].char = 
+									graphic.effect:getchar(x, y, graphic.data[y][x].bgcolor, graphic.data[y][x].forecolor, graphic.data[y][x].char)
+								self.data[y + top][x + left].bgcolor = 
+									graphic.effect:getbgcolor(x, y, graphic.data[y][x].bgcolor, graphic.data[y][x].forecolor, graphic.data[y][x].char)
+								self.data[y + top][x + left].forecolor = 
+									graphic.effect:getforecolor(x, y, graphic.data[y][x].bgcolor, graphic.data[y][x].forecolor, graphic.data[y][x].char)
+							else
+								--if graphic.data[y][x].char ~= "\r" then self.data[y + top][x + left].char = graphic.data[y][x].char else
+								--	self.data[y + top][x + left].char = "^" end
+
+								self.data[y + top][x + left].char = graphic.data[y][x].char
+								self.data[y + top][x + left].bgcolor = graphic.data[y][x].bgcolor
+								self.data[y + top][x + left].forecolor = graphic.data[y][x].forecolor
+							end
+						end
+					end
+				end
+			end
+
+			term.setCursorPos(graphic.cursorPos.x, graphic.cursorPos.y)
+			term.setCursorBlink(graphic.cursorBlink)
+		end,
+
+
+		point = function(self, x, y, char)
+			if self.data[y] ~= nil then
+				if self.data[y][x] ~= nil then
+					self.data[y][x].bgcolor = self.bgcolor
+					self.data[y][x].forecolor = self.forecolor
+					self.data[y][x].char = char
+				end
+			end
+		end,
+
+
+		scroll = function(self, n)
+			self:draw(0, -n, self)
+			self:fillrect(1, self.size.y - n, self.size.x, n, self.bgcolor)
+		end,
+
+
+		setCursorPos = function(self, x, y)
+			self.cursorPos.x = x
+			self.cursorPos.y = y
+		end,
+
+		getCursorPos = function(self)
+			return self.cursorPos.x, self.cursorPos.y
+		end,
+
+		getSize = function(self)
+			return self.size.x, self.size.y
+		end,
+	}
+
+	return canvas
+end
+
+
+function getTextColor(color)
+	local COLORS = {}
+
+	COLORS[0] = "t" -- transparent
+	COLORS[1] = "0"
+	COLORS[2] = "1"
+	COLORS[4] = "2"
+	COLORS[8] = "3"
+	COLORS[16] = "4"
+	COLORS[32] = "5"
+	COLORS[64] = "6"
+	COLORS[128] = "7"
+	COLORS[256] = "8"
+	COLORS[512] = "9"
+	COLORS[1024] = "a"
+	COLORS[2048] = "b"
+	COLORS[4096] = "c"
+	COLORS[8192] = "d"
+	COLORS[16384] = "e"
+	COLORS[32768] = "f"
+
+	return COLORS[color]
+end
+
+
+function getColorFromStr(str)
+	local COLORS = {}
+
+	COLORS["t"] = 0 -- transparent
+	COLORS["0"] = 1
+	COLORS["1"] = 2
+	COLORS["2"] = 4
+	COLORS["3"] = 8
+	COLORS["4"] = 16
+	COLORS["5"] = 32
+	COLORS["6"] = 64
+	COLORS["7"] = 128
+	COLORS["8"] = 256
+	COLORS["9"] = 512
+	COLORS["a"] = 1024
+	COLORS["b"] = 2048
+	COLORS["c"] = 4096
+	COLORS["d"] = 8192
+	COLORS["e"] = 16384
+	COLORS["f"] = 32768
+
+	return COLORS[str]
+end
+
+
+function pixelToString(pixel)
+	local bgcolor = getTextColor(pixel.bgcolor)
+	local forecolor = getTextColor(pixel.forecolor)
+	local char = string.sub(pixel.char, 1, 2) or " "
+
+	return bgcolor .. forecolor .. char
+end
+
+
+
+
+
+function saveCanvas(canvas, fileName)
+	fileName = string.gsub(fileName, "home:/", "")
+
+	if canvas ~= nil then
+		local data = "pic|" .. canvas.size.y .. "|" .. canvas.size.x .. "|"
+
+		for y = 1, canvas.size.y do
+			for x = 1, canvas.size.x do
+				data = data .. pixelToString(canvas.data[y][x])
+			end
+		end
+
+		local file = fs.open(fileName, "w")
+
+		if file ~= nil then
+			file.write(data)
+			file.close()
+		end
+	end
+end
+
+
+function loadCanvas(fileName)
+	fileName = string.gsub(fileName, "home:/", "")
+	local canvas = nil
+
+	if (fs.exists(fileName)) and (fs.isDir(fileName) == false) then
+		local file = fs.open(fileName, "r")
+
+		if file ~= nil then
+			local data = file.readAll()
+			file.close()
+
+			local sections = split(data, "|")
+
+			if sections[1] == "pic" then
+				local sizeY = tonumber(sections[2])
+				local sizeX = tonumber(sections[3])
+				local datasec = sections[4]
+
+				canvas = CreateCanvas(sizeX, sizeY)
+
+				for y = 1, sizeY do
+					for x = 1, sizeX do
+						local index = (((y - 1) * sizeX + (x - 1)) * 3) + 1
+						local bgcolor = getColorFromStr(string.sub(datasec, index, index))
+						local forecolor = getColorFromStr(string.sub(datasec, index + 1, index + 1))
+						local char = string.sub(datasec, index + 2, index + 2)
+
+						--error(index .. ":" .. string.sub(datasec, index, index) .. "!")
+
+						canvas.data[y][x].bgcolor = bgcolor
+						canvas.data[y][x].forecolor = forecolor
+						canvas.data[y][x].char = char
+					end
+				end
+
+				return canvas
+			end
+		end
+	end
+end
+
+
+
+
+
+
+function contrast_color(color)
+	if color == colors.black then return colors.white end
+	if color == colors.orange then return colors.black end
+	if color == colors.magenta then return colors.black end
+	if color == colors.lightBlue then return colors.black end
+	if color == colors.yellow then return colors.black end
+	if color == colors.lime then return colors.white end
+	if color == colors.pink then return colors.white end
+	if color == colors.gray then return colors.white end
+	if color == colors.lightGray then return colors.black end
+	if color == colors.cyan then return colors.white end
+	if color == colors.purple then return colors.white end
+	if color == colors.blue then return colors.white end
+	if color == colors.brown then return colors.white end
+	if color == colors.green then return colors.white end
+	if color == colors.red then return colors.white end
+	if color == colors.white then return colors.black end
+	return colors.white
+end
+
+
+
+function CreateEffect_Shadow()
+	local effect = {
+		getbgcolor = function(self, x, y, bgcolor, forecolor, char)
+			if bgcolor == colors.black then return colors.gray end
+			if bgcolor == colors.orange then return colors.lightGray end
+			if bgcolor == colors.magenta then return colors.lightGray end
+			if bgcolor == colors.lightBlue then return colors.lightGray end
+			if bgcolor == colors.yellow then return colors.lightGray end
+			if bgcolor == colors.lime then return colors.lightGray end
+			if bgcolor == colors.pink then return colors.lightGray end
+			if bgcolor == colors.gray then return colors.gray end
+			if bgcolor == colors.lightGray then return colors.gray end
+			if bgcolor == colors.cyan then return colors.gray end
+			if bgcolor == colors.purple then return colors.gray end
+			if bgcolor == colors.blue then return colors.gray end
+			if bgcolor == colors.brown then return colors.gray end
+			if bgcolor == colors.green then return colors.gray end
+			if bgcolor == colors.red then return colors.lightGray end
+			if bgcolor == colors.white then return colors.lightGray end
+			return colors.gray
+		end,
+
+		getforecolor = function(self, x, y, bgcolor, forecolor, char)
+			if forecolor == colors.black then return colors.gray end
+			if forecolor == colors.orange then return colors.lightGray end
+			if forecolor == colors.magenta then return colors.lightGray end
+			if forecolor == colors.lightBlue then return colors.lightGray end
+			if forecolor == colors.yellow then return colors.lightGray end
+			if forecolor == colors.lime then return colors.lightGray end
+			if forecolor == colors.pink then return colors.lightGray end
+			if forecolor == colors.gray then return colors.gray end
+			if forecolor == colors.lightGray then return colors.gray end
+			if forecolor == colors.cyan then return colors.gray end
+			if forecolor == colors.purple then return colors.gray end
+			if forecolor == colors.blue then return colors.gray end
+			if forecolor == colors.brown then return colors.gray end
+			if forecolor == colors.green then return colors.gray end
+			if forecolor == colors.red then return colors.lightGray end
+			if forecolor == colors.white then return colors.lightGray end
+			return colors.gray
+		end,
+
+		getchar = function(self, x, y, bgcolor, forecolor, char)
+			return char
+		end,
+	}
+
+
+	return effect
+end
+
+
+
+function CreateEffect_Acid()
+	local function RANDOMCOLOR(COLOR_BASE)
+		local COLORS = { 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768 }
+		math.randomseed(COLOR_BASE * os.time())
+
+		if COLORS[math.random(1, 16)] ~= nil then
+			return COLORS[math.random(1, 16)]
+		else
+			return colors.white
+		end
+	end
+
+
+	local effect = {
+		getbgcolor = function(self, x, y, bgcolor, forecolor, char)
+			return RANDOMCOLOR(bgcolor / 2)
+		end,
+
+		getforecolor = function(self, x, y, bgcolor, forecolor, char)
+			return RANDOMCOLOR(forecolor / 2)
+		end,
+
+		getchar = function(self, x, y, bgcolor, forecolor, char)
+			return char
+		end,
+	}
+
+	return effect
+end
+
+
+function CreateEffect_ListViewSelect()
+	local effect = {
+		getbgcolor = function(self, x, y, bgcolor, forecolor, char)
+			if bgcolor == colors.black then return colors.blue end
+			if bgcolor == colors.orange then return colors.blue end
+			if bgcolor == colors.magenta then return colors.lightBlue end
+			if bgcolor == colors.lightBlue then return colors.blue end
+			if bgcolor == colors.yellow then return colors.lightBlue end
+			if bgcolor == colors.lime then return colors.lightBlue end
+			if bgcolor == colors.pink then return colors.lightBlue end
+			if bgcolor == colors.blue then return colors.blue end
+			if bgcolor == colors.lightGray then return colors.lightBlue end
+			if bgcolor == colors.cyan then return colors.blue end
+			if bgcolor == colors.purple then return colors.blue end
+			if bgcolor == colors.blue then return colors.blue end
+			if bgcolor == colors.brown then return colors.blue end
+			if bgcolor == colors.green then return colors.blue end
+			if bgcolor == colors.red then return colors.lightBlue end
+			if bgcolor == colors.white then return colors.lightBlue end
+			return colors.blue
+		end,
+
+		getforecolor = function(self, x, y, bgcolor, forecolor, char)
+			if self:getbgcolor(x, y, bgcolor, forecolor, char) == colors.blue then return colors.lightBlue else return colors.blue end
+		end,
+
+		getchar = function(self, x, y, bgcolor, forecolor, char)
+			return char
+		end,
+	}
+
+
+	return effect
+end]])
+table.insert(names, "/system/widgets/button")
+table.insert(values, [[
+
+function Create(_parent, name)
+	local button = {
+		parent = _parent,
+		left = 1,
+		top = 1, 
+		height = 1,
+		width = 10,
+		caption = name,
+		focused = false,
+		visible = true,
+		bgcolor = colors.gray,
+		forecolor = colors.white,
+		forecolor2 = colors.red,
+		align = "center",
+		lastBgColor = colors.gray,
+
+
+		refresh = function(self)
+			local canvas = self.parent:getCanvas()
+			local x = self.left
+			local y = self.top
+			local textY = 0
+			local str = string.sub(self.caption, 2, string.len(self.caption))
+			local first = string.sub(self.caption, 1, 1)
+
+			if self.parent.style ~= "none" then
+				y = y + 1
+			end
+
+			textY = y + math.floor(self.height / 2)
+
+			canvas:fillrect(self.left, y, self.width - 1, self.height - 1, self.bgcolor)
+			
+
+			if string.len(str) + 2 > self.width then
+				str = string.sub(str, 1, self.width - 3) .. ".."
+			end
+
+
+
+			x = self.left + math.floor(self.width / 2) - math.ceil((string.len(str) +1) / 2)
+			--x = self.left + math.floor(self.width / 2) - math.floor(string.len(str) / 2)
+
+
+			--x = self.left
+
+			--if string.len(str) > self.width then
+			--	str = string.sub(str, 1, self.width - 2) .. ".."
+			--end
+
+			--\[-\[-if self.align == "right" then
+				x = self.left + self.width - string.len(str) + 1
+			end
+
+			if self.align == "center" then
+				x = self.left + math.floor(self.width / 2) - math.floor((string.len(str) + 1) / 2)
+			end\]-\]-
+
+
+
+			if string.len(str) > self.width then str = string.sub(str, 0, self.width - 1) end
+			if x < self.left then x = self.left end
+
+			canvas:setCursorPos(x, textY)
+			canvas.bgcolor = self.bgcolor
+			canvas.forecolor = self.forecolor2
+			canvas:write(first)
+			canvas.forecolor = self.forecolor
+			canvas:write(str)
+		end,
+
+
+		mouseClick = function(self, button, x, y)
+			--self.lastBgColor = self.bgcolor
+			--self.bgcolor = colors.blue
+			--self:refresh()
+			--self.bgcolor = lastBgColor
+		end,
+	}
+
+	_parent.widgets[name] = button
+	_parent.lastZOrder = _parent.lastZOrder + 1
+	button.zOrder = _parent.lastZOrder
+	return button
+end]])
+table.insert(names, "/system/widgets/checkbox")
+table.insert(values, [[
+
+function Create(_parent, name)
+	local checkbox = {
+		parent = _parent,
+		left = 1,
+		top = 1, 
+		height = 1,
+		width = 10,
+		bgcolor = colors.lightGray,
+		forecolor = colors.black,
+		caption = name,
+		focused = false,
+		visible = true,
+		checked = false,
+		grayed = false,
+
+
+		refresh = function(self)
+			local canvas = self.parent:getCanvas()
+			local x = self.left + 4
+			local y = self.top
+			local str = self.caption
+
+			if self.parent.style ~= "none" then
+				y = y + 1
+			end
+
+			canvas:fillrect(self.left, y, self.width - 1, self.height - 1, self.bgcolor)
+			
+			if string.len(str) > self.width - 4 then
+				str = string.sub(str, 1, self.width - 2 - 4) .. ".."
+			end
+
+			canvas:setCursorPos(x, y)
+			canvas.bgcolor = self.bgcolor
+			canvas.forecolor = self.forecolor
+			canvas:write(str)
+
+			canvas:setCursorPos(x - 4, y)
+			canvas:write("[ ]")
+			canvas:setCursorPos(x - 3, y)
+
+			if self.grayed then
+				canvas.bgcolor = colors.gray
+			else
+				canvas.bgcolor = colors.white
+			end
+
+			canvas.forecolor = colors.black
+			if self.checked then
+				canvas:write("X")
+			else
+				canvas:write(" ")
+			end
+		end,
+
+
+		mouseClick = function(self, button, x, y)
+			if not self.grayed then
+				self.checked = not self.checked
+				if self.onChange ~= nil then
+					self:onChange()
+				end
+				self:refresh()
+			end
+		end,
+	}
+
+	_parent.widgets[name] = checkbox
+	_parent.lastZOrder = _parent.lastZOrder + 1
+	checkbox.zOrder = _parent.lastZOrder
+	return checkbox
+end]])
+table.insert(names, "/system/widgets/edit")
+table.insert(values, [[
+
+function Create(_parent, name)
+	local edit = {
+		parent = _parent,
+		left = 1,
+		top = 1, 
+		height = 1,
+		width = 10,
+		bgcolor = colors.white,
+		forecolor = colors.black,
+		text = name,
+		focused = false,
+		visible = true,
+		align = "left",
+		cursor = 0,
+		editable = true,
+
+
+		refresh = function(self)
+			local canvas = self.parent:getCanvas()
+			local x = self.left
+			local y = self.top
+			local str = self.text
+			local inputText = ""
+
+			if self.parent.style ~= "none" then
+				y = y + 1
+			end
+
+			canvas:fillrect(self.left, y, self.width - 1, self.height - 1, self.bgcolor)
+			
+			if string.len(str) > self.width - 1 then
+				str = string.sub(str, 1, self.width - 4) .. ".."
+			end
+
+			if self.align == "right" then
+				x = self.left + self.width - string.len(str)
+			end
+
+			if self.align == "center" then
+				x = self.left + math.floor(self.width / 2) - math.floor(string.len(str) / 2)
+			end
+
+			if self.focused == false then
+				canvas:setCursorPos(x, y)
+				canvas.bgcolor = self.bgcolor
+				canvas.forecolor = colors.lightGray
+				canvas:write("> ")
+				canvas.forecolor = self.forecolor
+				canvas:write(str)
+				canvas.cursorBlink = false
+
+				if self.parent.parent.os ~= nil then
+					self.parent.parent.os.hideCaret()
+				end
+			else
+				canvas.bgcolor = self.bgcolor
+				canvas.forecolor = self.forecolor
+				canvas:setCursorPos(self.left, y)
+				canvas.cursorBlink = true
+
+				if string.len(self.text) > self.width - 2 then
+					inputText = string.sub(self.text, string.len(self.text) - self.width + 2, string.len(self.text))
+				else
+					inputText = self.text
+				end
+
+				canvas:write(inputText)
+
+				if self.parent.parent.os ~= nil then
+					self.parent.parent.os.showCaret()
+					self.parent.parent.os.setCaretPos(canvas.cursorPos.x + self.parent.left, canvas.cursorPos.y + self.parent.top)
+					self.parent.parent.os.setCaretColor(self.forecolor)
+				end
+			end
+		end,
+
+
+		--mouseClick = function(self, button, x, y)
+
+		--end,
+
+
+		keyPress = function(self, key, char)
+			if self.editable then
+				if key == 14 then
+					if string.len(self.text) > 0 then
+						self.text = string.sub(self.text, 1, string.len(self.text) - 1)
+					end
+				else
+					self.text = self.text .. char
+				end
+			end
+		end,
+	}
+
+	_parent.widgets[name] = edit
+	_parent.lastZOrder = _parent.lastZOrder + 1
+	edit.zOrder = _parent.lastZOrder
+	return edit
+end]])
+table.insert(names, "/system/widgets/fileListView")
+table.insert(values, [[
+function startswith(sbig, slittle)
+  if type(slittle) == "table" then
+    for k,v in ipairs(slittle) do
+      if string.sub(sbig, 1, string.len(v)) == v then 
+        return true
+      end
+    end
+    return false
+  end
+  return string.sub(sbig, 1, string.len(slittle)) == slittle
+end
+
+
+
+function Create(_parent, name)
+	local fileListView = listView.Create(_parent, name)
+	fileListView.path = "home:/"
+	fileListView.firstRefresh = false
+	fileListView.history = {}
+	fileListView.use_history = false
+	fileListView.icon_buffer = {}
+	fileListView.hide_lnk_ext = true
+	fileListView.dirOnly = false
+
+
+	fileListView.getIcon = function(self, item)
+		local ext = ""
+		local result = nil
+		local os2 = self.parent.parent.os
+
+		if item ~= nil then
+			s = item.name
+
+			if (string.len(s) > 0) and (string.find(s, "%.") and s[0] ~= "." ) then
+				local fn = user.split(s, ".")
+				ext = fn[#fn]
+			else
+				if item.dir then
+					ext = "folder"
+				else
+					ext = "unknown"
+				end
+			end
+
+			if user.stringstarts(name, ".") and item.dir then
+				ext = "folder"
+			end
+		end
+
+
+		if self.icon_buffer[ext] == nil then
+			local fileName = os2.getSystemPath() .. "/system2/" .. ext .. ".pic"
+
+			if not fs.exists(fileName) then
+				fileName = os2.getSystemPath() .. "/system2/unknown.pic"
+			end
+
+			local icon = user.loadCanvas("home:/" .. fileName)
+			self.icon_buffer[ext] = icon
+			result = icon
+		else
+			result = self.icon_buffer[ext]
+		end
+
+		if ext == "lnk" then
+			pcall(function()
+				local lnkdata = iniFiles.read(self.path .. "/" .. item.name)
+
+				if lnkdata ~= nil then
+					if lnkdata.shortcut ~= nil then
+						local icon = lnkdata.shortcut.icon
+
+						if icon ~= nil then
+							result = user.loadCanvas(icon):scale(4, 3)
+							result.data[3][1].bgcolor = colors.white
+							result.data[3][1].forecolor = colors.black
+							result.data[3][1].char = "L"
+						end
+					end
+				end
+			end)
+		end
+
+
+		if result == nil then
+			result = user.CreateCanvas(4, 3)
+		end
+
+		return result
+	end
+
+
+	fileListView.refreshList = function(self)
+		local path = string.gsub(self.path, "home:/", "", 1) .. "/"
+
+		self.list = {}
+		self.selectedList = {}
+		self.offset = 0
+		self.widgets.scrollBar.value = 0
+
+		local b_files = fs.list(path)
+		local t_files = {}
+		local files = {}
+
+		for i, v in ipairs(b_files) do
+			if fs.isDir(path .. "/" .. v) then table.insert(files, v) else table.insert(t_files, v) end
+		end
+
+		if not self.dirOnly then
+			for i, v in ipairs(t_files) do
+				table.insert(files, v)
+			end
+		end
+
+
+
+		for i, v in ipairs(files) do
+			table.insert(self.list, { icon = {}, name = v, dir = fs.isDir(path .. "/" .. v) })
+		end
+	end
+
+
+	fileListView.navigate = function(self, path, addToHistory, _os)
+		if not startswith(path, "home:/") then
+			path = self.path .. "/" .. path
+		end
+
+
+		local str = string.gsub(path, "home:/", "", 1) .. "/"
+
+		if fs.isDir(str) then
+			if not (addToHistory == false) then
+				table.insert(self.history, self.path)
+			end
+
+			self.path = path
+			if self.onNavigate ~= nil then self:onNavigate(path) end
+			self.selectedList = {}
+			self:refreshList()
+		else
+			if _os ~= nil then
+				_os.shell.run(path)
+			end
+		end
+	end
+
+
+	fileListView.goBack = function(self)
+		if self.use_history then
+			local addr = table.remove(self.history)
+			if addr ~= nil then
+				self:navigate(addr, false, nil)
+			end
+		else
+			local addr = user.split(self.path, "/")
+
+			if #addr > 1 then
+				local path = ""
+
+				for i = 1, #addr - 1 do
+					path = path .. addr[i] .. "/"
+				end
+
+				self:navigate(path, false, nil)
+			end
+		end
+	end
+
+
+	fileListView.contextMenuConstructor = function(sender, item)
+		local menu = popupMenu.Create()
+		table.insert(menu.items, popupMenu.CreateItem("New", function(sender)  end))
+
+		return menu
+	end
+
+
+	--fileListView.onRefresh = function(self)
+	--	if self.firstRefresh then
+	--		self:refreshList()
+	--		self.firstRefresh = false
+	--	end
+	--end
+
+
+	return fileListView
+end]])
+table.insert(names, "/system/widgets/glSurface")
+table.insert(values, [[function Create(_parent, name)
+	local glSurface = {
+		parent = _parent,
+		left = 1,
+		top = 1, 
+		height = 16,
+		width = 24,
+		focused = false,
+		visible = true,
+		glRender = nil,
+		--glRender = function(self, gl)
+
+
+		refresh = function(self)
+			local canvas = self.parent:getCanvas()
+			canvas:fillrect(self.left, self.top, self.width, self.height, 0)
+
+			if self.glRender ~= nil then
+				--\[-\[-gl = {
+					write = function(str)
+						for i = 1, string.len(str) do
+							local x, y = term.getCursorPos()
+							if x + self.left + 1 < self.left + 
+						end
+				}\]-\]-
+				gl = {
+					write = term.write,
+					clear = term.clear,
+					clearLine = term.clearLine,
+
+					getCursorPos = function()
+						local x, y = term.getCursorPos()
+						return x - self.left, y - self.top
+					end,
+
+					setCursorPos = function(x, y)
+						term.setCursorPos(x + self.left, y + self.top)
+					end,
+
+					setCursorBlink = function(bool)
+					end,
+
+					isColor = term.isColor,
+
+					getSize = function()
+						return self.width, self.height
+					end,
+
+					scroll = term.scroll,
+
+					redirect = function(target)
+					end,
+
+					setTextColor = term.setTextColor,
+					setBackgroundColor = term.setBackgroundColor,
+				}
+
+				self:glRender(gl)
+			end
+		end,
+	}
+
+
+	_parent.widgets[name] = glSurface
+	_parent.lastZOrder = _parent.lastZOrder + 1
+	glSurface.zOrder = _parent.lastZOrder
+	return glSurface
+end]])
+table.insert(names, "/system/widgets/label")
+table.insert(values, [[
+
+function Create(_parent, name)
+	local label = {
+		parent = _parent,
+		left = 1,
+		top = 1, 
+		height = 1,
+		width = 10,
+		bgcolor = colors.lightGray,
+		forecolor = colors.black,
+		caption = name,
+		focused = false,
+		visible = true,
+		align = "left",
+
+
+		refresh = function(self)
+			local canvas = self.parent:getCanvas()
+			local x = self.left
+			local y = self.top
+			local str = self.caption
+
+			if self.parent.style ~= "none" then
+				y = y + 1
+			end
+
+			canvas:fillrect(self.left, y, self.width - 1, self.height - 1, self.bgcolor)
+			
+			if string.len(str) > self.width then
+				str = string.sub(str, 1, self.width - 2) .. ".."
+			end
+
+			if self.align == "right" then
+				x = self.left + self.width - string.len(str)
+			end
+
+			if self.align == "center" then
+				x = self.left + math.floor(self.width / 2) - math.floor(string.len(str) / 2)
+			end
+
+			canvas:setCursorPos(x, y)
+			canvas.bgcolor = self.bgcolor
+			canvas.forecolor = self.forecolor
+			canvas:write(str)
+		end
+	}
+
+	_parent.widgets[name] = label
+	_parent.lastZOrder = _parent.lastZOrder + 1
+	label.zOrder = _parent.lastZOrder
+	return label
+end]])
+table.insert(names, "/system/widgets/listBox")
+table.insert(values, [[
+function Create(_parent, name)
+	local listBox = panel.Create(_parent, name)
+
+	listBox.selected = {
+		bgcolor = colors.blue,
+		forecolor = colors.white,
+	}
+
+	listBox.bgcolor = colors.white
+	listBox.forecolor = colors.black
+	listBox.columns = 1
+	listBox.columnWidth = {}
+
+	listBox.checkBoxes = false
+
+	listBox.list = {}
+	listBox.selectedList = {}
+	listBox.showScroll = true
+	listBox.offset = 0
+	listBox.index = 1
+	listBox.widgets.scrollBar = scrollBar.Create(listBox, "scrollBar")
+
+	listBox.widgets.scrollBar.min = 0
+	listBox.widgets.scrollBar.max = 50
+	listBox.widgets.scrollBar.value = 0
+	listBox.widgets.scrollBar.step = 1
+
+	listBox.widgets.scrollBar.onChange = function(sender)
+		sender.parent.offset = sender.value
+	end
+
+
+	listBox.reposition = function(self, height, width)
+		self.height = height
+		self.width = width
+
+		self.widgets.scrollBar.left = width - 1
+		self.widgets.scrollBar.height = height
+	end
+
+
+	listBox.onBeforeRefresh = function(self)
+		self:reposition(self.height, self.width)
+
+		local scrollBar = self.widgets.scrollBar
+		self.widgets = { scrollBar = scrollBar }
+
+		--\[-\[-for k, v in pairs(self.widgets) do
+			if string.find(k, "item_") then
+				self.widgets[k] = nil
+			end
+		end\]-\]-
+
+		for i, v in ipairs(self.list) do
+			if self.columns == 1 then
+				local lbl = {}
+
+				if self.checkBoxes then
+					lbl = checkbox.Create(self, "item_" .. tostring(i))
+					lbl.checked = v[2] or true
+					lbl.grayed = v[3] or false
+					lbl.caption = v[1]
+					lbl.onChange = function(sender)
+						--self.list[sender.tag][2] = sender.checked
+						--sender:refresh()
+						--error("ss")
+						sender.checked = not sender.checked
+					end
+				else
+					lbl = label.Create(self, "item_" .. tostring(i))
+					lbl.caption = v
+				end
+
+				lbl.left = 1
+				lbl.top = i - self.offset
+				lbl.width = self.width - 2
+				lbl.bgcolor = self.bgcolor
+				lbl.forecolor = self.forecolor
+				lbl.tag = i
+
+				lbl.onClick = function(sender)
+					self.index = sender.tag
+					sender.bgcolor = self.selected.bgcolor
+					sender.forecolor = self.selected.forecolor
+					if self.checkBoxes and not sender.grayed then
+						sender.checked = not sender.checked
+						self.list[sender.tag][2] = sender.checked
+						sender:refresh()
+					end
+				end
+
+				if i == self.index then
+					lbl.bgcolor = self.selected.bgcolor
+					lbl.forecolor = self.selected.forecolor
+				end
+			else
+				local left = 1
+
+				for column = 1, self.columns do
+					left = left + (self.columnWidth[column - 1] or 0)
+
+					local lbl = label.Create(self, "item_" .. tostring(i) .. "_c_" .. tostring(column))
+					lbl.left = left
+					lbl.top = i - self.offset
+
+					if column == self.columns then
+						lbl.width = self.width - 1 - left
+					else
+						lbl.width = self.columnWidth[column]
+					end
+
+					lbl.bgcolor = self.bgcolor
+					lbl.forecolor = self.forecolor
+					lbl.caption = v[column]
+					lbl.tag = i
+
+					lbl.onClick = function(sender)
+						self.index = sender.tag
+
+						for c = 1, sender.parent.columns do
+							sender.parent.widgets["item_" .. tostring(i) .. "_c_" .. tostring(c)].bgcolor = self.selected.bgcolor
+							sender.parent.widgets["item_" .. tostring(i) .. "_c_" .. tostring(c)].forecolor = self.selected.forecolor
+						end
+					end
+
+					if i == self.index then
+						lbl.bgcolor = self.selected.bgcolor
+						lbl.forecolor = self.selected.forecolor
+					end
+				end
+			end
+		end
+	end
+
+
+	listBox.getMax = function(self)
+		return #self.list - self.height
+	end
+
+
+	listBox.onRefresh = function(self)
+		self.widgets.scrollBar.max = self:getMax()
+		if self.widgets.scrollBar.max < 0 then self.widgets.scrollBar.max = 0 end
+	end
+
+
+	listBox.clear = function(self)
+		self.list = {}
+		--self.index = 1
+	end
+
+
+	listBox.add = function(self, item)
+		table.insert(self.list, item)
+	end
+
+
+	return listBox
+end]])
+table.insert(names, "/system/widgets/listView")
+table.insert(values, [[
+function Create(_parent, name)
+	local listView = panel.Create(_parent, name)
+	local ITEM_WIDTH = 9
+	local ITEM_HEIGHT = 6 --5
+
+	listView.list = {}
+	listView.selectedList = {}
+	listView.showScroll = true
+	listView.offset = 0
+	listView.contextMenuConstructor = nil
+	listView.widgets.scrollBar = scrollBar.Create(listView, "scrollBar")
+
+	listView.widgets.scrollBar.min = 0
+	listView.widgets.scrollBar.max = 50
+	listView.widgets.scrollBar.value = 0
+	listView.widgets.scrollBar.step = 2
+
+	listView.widgets.scrollBar.onChange = function(sender)
+		sender.parent.offset = sender.value
+	end
+
+
+	listView.reposition = function(self, height, width)
+		self.height = height
+		self.width = width
+
+		self.widgets.scrollBar.left = width - 1
+		self.widgets.scrollBar.height = height
+	end
+
+
+	listView.drawItem = function(self, index, selected)
+		local item = self.list[index]
+		index = index - 1
+
+		if item ~= nil then
+			local x = 0
+			local y = 0
+			local maxX = math.floor((self.width - 2) / ITEM_WIDTH) - 1
+
+			for i = 1, index do
+				x = x + 1
+
+				if x > maxX then
+					x = 0
+					y = y + 1
+				end
+			end
+
+			x = x * ITEM_WIDTH + 1
+			y = y * ITEM_HEIGHT + 1
+
+
+			y = y - self.offset
+
+
+			if self.getIcon ~= nil then
+				local icon = self:getIcon(self.list[index + 1])
+
+				if selected then
+					icon.effect = user.CreateEffect_ListViewSelect()
+				else
+					icon.effect = nil
+				end
+
+				self.canvas:draw(x + 2 - 1, y - 1, icon)
+			else
+				if selected then
+					self.canvas:fillrect(x + 2, y, 3, 2, colors.blue)
+				else
+					self.canvas:fillrect(x + 2, y, 3, 2, colors.white)
+				end
+			end
+
+
+
+			local text = string.sub(item.name, 1, string.len(item.name))
+
+			if self.hide_lnk_ext == true then
+				if user.stringends(text, ".lnk") then
+					text = string.sub(text, 1, string.len(text) - 4)
+				end
+			end
+
+			--if string.len(text) > ITEM_WIDTH - 1 then text = string.sub(text, 1, ITEM_WIDTH - 3) .. ".." end
+			if string.len(text) > ITEM_WIDTH - 1 then
+				local text1 = string.sub(text, 1, ITEM_WIDTH - 1)
+				local text2 = string.gsub(text, text1, "", 1)
+
+				if string.len(text2) > ITEM_WIDTH - 1 then text2 = string.sub(text2, 1, ITEM_WIDTH - 3) .. ".." end
+
+				local text1X = x + math.ceil((ITEM_WIDTH - 2) / 2) - math.ceil(string.len(text1) / 2)
+				local text2X = x + math.ceil((ITEM_WIDTH - 2) / 2) - math.ceil(string.len(text2) / 2)
+
+				self.canvas.bgcolor = self.bgcolor
+				self.canvas.forecolor = user.contrast_color(self.bgcolor)
+				self.canvas:setCursorPos(text1X, y + 3)
+				self.canvas:write(text1)
+				self.canvas:setCursorPos(text2X, y + 4)
+				self.canvas:write(text2)
+			else
+				local textX = x + math.ceil((ITEM_WIDTH - 2) / 2) - math.ceil(string.len(text) / 2)
+
+				self.canvas.bgcolor = self.bgcolor
+				self.canvas.forecolor = user.contrast_color(self.bgcolor)
+				self.canvas:setCursorPos(textX, y + 3)
+				self.canvas:write(text)
+			end
+		end
+	end
+
+
+
+	listView.onBeforeRefresh = function(self)
+		self:reposition(self.height, self.width)
+	end
+
+	listView.getMax = function(self)
+		local list = self.list
+		local maxX = math.floor((self.width - 2) / ITEM_WIDTH)
+		local max = (math.ceil(#list / maxX) * ITEM_HEIGHT) - self.height
+		if max < 0 then max = 0 end
+
+		return max
+	end
+
+
+	listView.onRefresh = function(self)
+		self.widgets.scrollBar.max = self:getMax()
+
+		for i, v in ipairs(self.list) do
+			if self.canvas ~= nil then
+				self:drawItem(i)
+			end
+		end
+
+		for i, v in ipairs(self.selectedList) do
+			if self.canvas ~= nil then
+				self:drawItem(v, true)
+			end
+		end
+
+		if self.onAfterRefresh ~= nil then
+			self:onAfterRefresh()
+		end
+	end
+
+
+	listView.getItemAt = function(self, x, y)
+		local index = math.floor(self.width /  ITEM_WIDTH) * (y - 1) + x
+
+		if self.list[index] ~= nil then
+			return index
+		else
+			return 0
+		end
+	end
+
+
+	listView.onMouseClick = function(self, button, x, y)
+		local mx = x
+		local my = y
+
+		y = y - 1 + self.offset - self.top
+		x = x - self.left - 2
+
+		if self.width - x > 8 then
+			x = math.floor((x + 1) / ITEM_WIDTH)
+			y = math.floor(y / ITEM_HEIGHT)
+
+			if x > math.floor(self.width /  ITEM_WIDTH) - 0 then x = math.floor(self.width / ITEM_WIDTH) - 0 end
+
+			x = x + 1
+			y = y + 1
+		else
+			x = 0
+			y = 0
+		end
+
+		--self.parent.name = x .. " " .. y .. " " .. math.floor(self.width /  ITEM_WIDTH)
+		local item = self:getItemAt(x, y)
+		--if item ~= nil then self.parent.name = item.name else self.parent.name = " " end
+		if item ~= 0 then
+			if self.isCtrlDown then
+				table.insert(self.selectedList, item)
+			else
+				self.selectedList = { item }
+			end
+		else
+			self.selectedList = {}
+		end
+
+
+		if button == 2 then
+			if self.onContextMenu ~= nil then
+				self:onContextMenu(item, mx, my)
+			end
+		end
+	end
+
+
+	--listView:reposition(listView.height, listView.width)
+	return listView
+end]])
+table.insert(names, "/system/widgets/menuBar")
+table.insert(values, [[
+function Create(_parent, name)
+	local menuBar = panel.Create(_parent, name)
+	menuBar.items = {}
+
+
+	menuBar.oldRefresh = menuBar.refresh
+	menuBar.alignTop = true
+
+	menuBar.refresh = function(self)
+		self.width = self.parent:getCanvas().size.x
+		self.height = 1
+		
+		if self.apignTop then
+			self.top = 1
+		end
+		
+		self.left = 0
+		self.bgcolor = colors.white
+
+		self.widgets = {}
+		local totalWidth = 1
+
+
+		for i, v in ipairs(self.items) do
+			local width = string.len(v.name) + 2
+			local item = label.Create(self, "label_" .. tostring(i))
+			item.parent = self
+
+			item.bgcolor = colors.white
+			item.forecolor = colors.black
+			item.forecolor2 = colors.red
+			item.width = width
+			item.left = totalWidth
+			item.caption = v.name
+
+			--item.onClick = function(sender)
+			--	local a = menuBar.os.popupMenu(sender.menu, sender.left, sender.top + 1)
+			--end
+			item.onClick = v.onClick
+
+			totalWidth = totalWidth + width
+		end
+
+		self:oldRefresh()
+	end
+
+
+	_parent.widgets[name] = menuBar
+	_parent.lastZOrder = _parent.lastZOrder + 1
+	menuBar.zOrder = _parent.lastZOrder
+	return menuBar
+end
+
+
+function CreateItem(_name, _onClick)
+	local item = {
+		name = _name,
+		onClick = _onClick,
+	}
+
+	return item
+end]])
+table.insert(names, "/system/widgets/paintBox")
+table.insert(values, [[
+
+function Create(_parent, name)
+	local paintBox = {
+		parent = _parent,
+		left = 1,
+		top = 1, 
+		pheight = 0,
+		pwidth = 0,
+		height = 16,
+		width = 24,
+		bgcolor = colors.white,
+		focused = false,
+		visible = true,
+		canvas = nil,
+		widgets = {},
+		brush = {
+			bgcolor = colors.black,
+			forecolor = colors.white,
+			char = " ",
+		},
+
+
+		refresh = function(self)
+			if self.canvas == nil then
+				self.canvas = user.CreateCanvas(self.width - 1, self.height)
+				self.canvas:fillrect(1, 1, self.width - 1, self.height, self.bgcolor)
+				self.parent:getCanvas():draw(self.left, self.top, self.canvas)
+			else
+				if (self.pheight ~= self.height) or (self.pwidth ~= self.width) then
+					local canvas = self.canvas
+					self.canvas = user.CreateCanvas(self.width - 1, self.height)
+					self.canvas:fillrect(1, 1, self.width - 1, self.height, self.bgcolor)
+					self.canvas:draw(0, 0 --\[-\[-1\]-\]-, canvas)
+					self.canvas.effect = canvas.effect
+				end
+
+				self.parent:getCanvas():draw(self.left, self.top, self.canvas)
+			end
+
+			self.pheight = self.height
+			self.pwidth = self.width
+		end,
+
+
+		mouseClick = function(self, button, x, y)
+			--if self.onMouseClick ~= nil then self:onMouseClick(button, x - self.left, y - self.top) end
+		end
+	}
+
+	_parent.widgets[name] = paintBox
+	_parent.lastZOrder = _parent.lastZOrder + 1
+	paintBox.zOrder = _parent.lastZOrder
+	return paintBox
+end]])
+table.insert(names, "/system/widgets/panel")
+table.insert(values, [[
+
+function Create(_parent, name)
+	local panel = {
+		parent = _parent,
+		left = 1,
+		top = 1, 
+		height = 16,
+		width = 24,
+		bgcolor = colors.white,
+		focused = false,
+		visible = true,
+		align = "left",
+		style = "none",
+		canvas = nil,
+		widgets = {},
+		focusedWidget = nil,
+		lastZOrder = 0,
+
+
+
+		refresh = function(self)
+			local canvas = self.parent:getCanvas()
+			local x = self.left
+			local y = self.top
+			local str = self.caption
+
+			if self.parent.style ~= "none" then
+				y = y + 1
+			end
+
+			self.canvas = user.CreateCanvas(self.width, self.height)
+			self.canvas:fillrect(1, 1, self.width, self.height, self.bgcolor)
+
+			if self.onBeforeRefresh ~= nil then
+				self:onBeforeRefresh()
+			end
+
+
+			for k, v in pairs(self.widgets) do
+				if self.focusedWidget == v then
+					v.focused = true
+				else
+					v.focused = false
+
+					if v.onRefresh ~= nil then
+						v:onRefresh()
+					end
+
+					if v.visible == true then
+						v:refresh()
+					end
+				end
+			end
+
+			--if self.parent.focusedWidget == self then
+				if self.focusedWidget ~= nil then
+					if self.focusedWidget.onRefresh ~= nil then
+						self.focusedWidget:onRefresh()
+					end
+
+					self.focusedWidget:refresh()
+				end
+			--end
+
+			if self.onRefresh ~= nil then
+				self:onRefresh()
+			end
+
+
+			canvas:draw(self.left, self.top, self.canvas)
+			canvas:setCursorPos(self.canvas.cursorPos.x + self.left, self.canvas.cursorPos.y + self.top)
+			canvas.cursorBlink = self.canvas.cursorBlink
+		end,
+
+
+		mouseClick = function(self, button, x, y)
+			self.focusedWidget = nil
+			x = x - self.left + 0
+			y = y - self.top -- 1
+
+			for name, widget in pairs(self.widgets) do
+				if (x >= widget.left) and (x < widget.left + widget.width) and 
+				   (y >= widget.top) and (y < widget.top + widget.height) then
+					self.focusedWidget = widget
+
+
+					if widget.onMouseClick ~= nil then
+						widget:onMouseClick(button, --\[-\[-x + self.left, y + self.top\]-\]-x + widget.left, y + widget.top)
+					end
+
+					if widget.mouseClick ~= nil then
+						widget:mouseClick(button, --\[-\[-x + self.left, y + self.top\]-\]-x + widget.left, y + widget.top)
+					end
+
+
+
+					if button == 1 then
+						if widget.onClick ~= nil then
+							widget:onClick()
+						end
+					else
+						if widget.onPopup ~= nil then
+							widget:onPopup()
+						end
+					end
+				end
+			end
+		end,
+
+
+		keyPress = function(self, key, char)
+			if self.focusedWidget ~= nil then
+				if self.focusedWidget.keyPress ~= nil then
+					self.focusedWidget:keyPress(key, char)
+				end
+			end
+		end,
+
+
+		getCanvas = function(self)
+			return self.canvas
+		end,
+	}
+
+	_parent.widgets[name] = panel
+	_parent.lastZOrder = _parent.lastZOrder + 1
+	panel.zOrder = _parent.lastZOrder
+	return panel
+end]])
+table.insert(names, "/system/widgets/popupMenu")
+table.insert(values, [[
+
+function Create()
+	local popupMenu = {
+		canvas = nil,
+		pleft = 1,
+		ptop = 1,
+		left = 1,
+		top = 1,
+		height = 0,
+		width = 0,
+		bgcolor = colors.white,
+		forecolor = colors.black,
+		forecolor2 = colors.red,
+		focused = false,
+		visible = true,
+		showing = false,
+		items = {},
+
+
+		refresh = function(self)
+			local canvas = self.canvas
+			local items = self.items
+			local x = self.left
+			local y = self.top
+			local maxWidth = 0
+
+
+
+			if (self.showing) and (#items > 0) and (canvas ~= nil) then
+				for k, v in pairs(items) do
+					if string.len(v.text) > maxWidth then maxWidth = string.len(v.text) end
+				end
+
+				self.height = #items - 1
+				self.width = maxWidth
+				self.left = self.pleft
+
+				if (canvas.size.y - self.ptop < self.height + 1) then
+					canvas:fillrect(self.pleft + 1, self.ptop - self.height + 1, self.width, self.height, colors.black)
+					canvas:fillrect(self.pleft, self.ptop - self.height, self.width, self.height, self.bgcolor)
+					canvas.bgcolor = self.bgcolor
+					canvas.forecolor = self.forecolor
+
+					for i, v in ipairs(items) do
+						canvas:setCursorPos(self.pleft, self.ptop - i + 1)
+						--canvas:write(v.text)
+						if v.text ~= "-" then
+							canvas.forecolor = self.forecolor2
+							canvas:write(string.sub(v.text, 1, 1))
+							canvas.forecolor = self.forecolor
+							canvas:write(string.sub(v.text, 2))
+						else
+							canvas.forecolor = colors.lightGray
+							canvas:write(string.rep("-", self.width))
+						end
+					end
+
+					self.top = self.ptop - self.height
+				else
+					canvas:fillrect(self.pleft + 1, self.ptop + 1, self.width, self.height, colors.black)
+					canvas:fillrect(self.pleft, self.ptop, self.width, self.height, self.bgcolor)
+					canvas.bgcolor = self.bgcolor
+					canvas.forecolor = self.forecolor
+
+					for i, v in ipairs(items) do
+						canvas:setCursorPos(self.pleft, self.ptop + i - 1)
+
+						if v.text ~= "-" then
+							canvas.forecolor = self.forecolor2
+							canvas:write(string.sub(v.text, 1, 1))
+							canvas.forecolor = self.forecolor
+							canvas:write(string.sub(v.text, 2))
+						else
+							canvas.forecolor = colors.lightGray
+							canvas:write(string.rep("-", self.width))
+						end
+					end
+
+					self.top = self.ptop
+				end
+
+
+			else
+				self.showing = false
+			end
+		end,
+
+
+		popUp = function(self, x, y)
+			self.pleft = x
+			self.ptop = y
+			self.showing = true
+		end,
+
+
+		mouseClick = function(self, button, x, y)
+			if (self.canvas.size.y - self.ptop < self.height + 1) then
+				if (x >= self.left) and (x <= self.left + self.width) and (y >= self.top) and (y <= self.top + self.height) then
+					local items = self.items
+					local index = #items - (y - self.top - 0)
+
+					if items[index] ~= nil then
+						if items[index].onClick ~= nil then
+							items[index]:onClick()
+						end
+					end
+				end
+			else
+				if (x >= self.left) and (x <= self.left + self.width) and (y >= self.top) and (y <= self.top + self.height) then
+					local items = self.items
+					local index = y - self.top + 1
+
+					if items[index] ~= nil then
+						if items[index].onClick ~= nil then
+							items[index]:onClick()
+						end
+					end
+				end
+			end
+
+			self.showing = false
+		end,
+	}
+
+	return popupMenu
+end
+
+
+function CreateItem(_text, _onClick)
+	local item = {
+		text = _text,
+		onClick = _onClick,
+	}
+
+	return item
+end]])
+table.insert(names, "/system/widgets/progressBar")
+table.insert(values, [[
+
+function Create(_parent, name)
+	local progressBar = {
+		parent = _parent,
+		left = 1,
+		top = 1, 
+		height = 1,
+		width = 10,
+		bgcolor = colors.white,
+		forecolor = colors.black,
+		fillcolor = colors.blue,
+		showPercent = true,
+		focused = false,
+		visible = true,
+		position = 0,
+		max = 100,
+
+
+		refresh = function(self)
+			if self.position > self.max then self.position = self.max end
+			if self.position < 0 then self.position = 0 end
+
+			local canvas = self.parent:getCanvas()
+			local x = self.left
+			local y = self.top
+			local percent = math.ceil((100 * self.position) / self.max)
+			local w = math.ceil((self.width * self.position) / self.max)
+			local str = tostring(percent) .. "%"
+			if w > self.width then w = self.width end
+			if w < 0 then w = 0 end
+
+			if self.parent.style ~= "none" then
+				y = y + 1
+			end
+
+			canvas:fillrect(self.left, y, self.width - 1, self.height - 1, self.bgcolor)
+			canvas:fillrect(self.left, y, w - 1, self.height - 1, self.fillcolor)
+
+			x = self.left + math.floor(self.width / 2) - math.floor(string.len(str) / 2)
+
+			if self.showPercent then
+				canvas:setCursorPos(x, y)
+				canvas.bgcolor = self.fillcolor
+				canvas.forecolor = self.bgcolor
+				canvas:write(str)
+			end
+		end
+	}
+
+	_parent.widgets[name] = progressBar
+	_parent.lastZOrder = _parent.lastZOrder + 1
+	progressBar.zOrder = _parent.lastZOrder
+	return progressBar
+end]])
+table.insert(names, "/system/widgets/scrollBar")
+table.insert(values, [[
+
+function Create(_parent, name)
+	local scrollBar = {
+		parent = _parent,
+		left = 1,
+		top = 1, 
+		height = 10,
+		width = 1,
+		value = 0,
+		min = 0,
+		max = 100,
+		step = 10,
+		focused = false,
+		vertical = true,
+		visible = true,
+
+
+		refresh = function(self)
+			local canvas = self.parent:getCanvas()
+			local x = self.left
+			local y = self.top
+			local str = self.caption
+
+			if self.parent.style ~= "none" then
+				y = y + 1
+			end
+
+			canvas:fillrect(self.left, y, self.width - 1, self.height - 1, colors.white)
+
+			if self.vertical == true then
+				canvas:setCursorPos(x, y)
+				canvas.bgcolor = colors.gray
+				canvas.forecolor = colors.lightGray
+				canvas:write("*")
+
+				canvas:setCursorPos(x, y + self.height - 1)
+				canvas.bgcolor = colors.gray
+				canvas.forecolor = colors.lightGray
+				canvas:write("*")
+
+				local selPos = math.ceil((self.height - 2) * self.value / self.max)
+				if selPos < 1 then selPos = 1 end
+				if selPos > self.height - 2 then selPos = self.height - 2 end
+
+				canvas:setCursorPos(x, y + selPos)
+				canvas:write(" ")
+			else
+				canvas:setCursorPos(x, y)
+				canvas.bgcolor = colors.gray
+				canvas.forecolor = colors.lightGray
+				canvas:write("*")
+
+				canvas:setCursorPos(x + self.width - 1, y)
+				canvas.bgcolor = colors.gray
+				canvas.forecolor = colors.lightGray
+				canvas:write("*")
+
+				local selPos = math.ceil((self.width - 3) * self.value / self.max)
+				if selPos < 1 then selPos = 1 end
+				if selPos > self.width - 2 then selPos = self.width - 2 end
+
+				canvas:setCursorPos(x + selPos, y)
+				canvas:write(" ")
+			end
+		end,
+
+
+		mouseDrag = function(self, button, x, y)
+			if button == 1 then
+				local delta = math.ceil((self.height - 2) / self.max) * x
+				if self.vertical == true then
+					delta = math.ceil((self.width - 2) / self.max) * y
+				end
+
+				self.value = self.value + delta
+				if self.value < self.min then self.value = self.min end
+				if self.value > self.max then self.value = self.max end
+
+				self:refresh()
+				if self.onChange ~= nil then
+					self:onChange()
+				end
+			end
+		end,
+
+
+		mouseClick = function(self, button, x, y)
+			if button == 1 then
+				--\[-\[-local selPos = math.floor(self.height * self.value / self.max)
+				if selPos < 1 then selPos = 1 end
+				if selPos > self.height - 2 then selPos = self.height - 2 end
+				local cx = self.left
+				local cy = self.top
+
+				if self.parent.style ~= "none" then
+					cy = cy + 1
+				end\]-\]-
+
+				local cx = self.left
+				local cy = self.top
+				local oldValue = self.value
+				local changed = false
+
+				--if self.parent.style ~= "none" then
+					cy = cy + 1
+				--end
+
+				if self.vertical == true then
+					if y == cy then
+						self.value = self.value - self.step
+						changed = true
+					end
+
+					if y == cy + self.height - 1 then
+						self.value = self.value + self.step
+						changed = true
+					end
+				else
+					if x == cx - 1 then
+						self.value = self.value - self.step
+						changed = true
+					end
+
+					if x == cx + self.width - 2 then
+						self.value = self.value + self.step
+						changed = true
+					end
+				end
+
+				if self.value < self.min then self.value = self.min end
+				if self.value > self.max then self.value = self.max end
+
+
+				if (oldValue ~= self.value) and (self.onChange ~= nil) then self:onChange() end
+			end
+		end,
+	}
+
+	_parent.widgets[name] = scrollBar
+	_parent.lastZOrder = _parent.lastZOrder + 1
+	scrollBar.zOrder = _parent.lastZOrder
+	return scrollBar
+end]])
+table.insert(names, "/system/widgets/shdocvw")
+table.insert(values, [[]])
+table.insert(names, "/system/widgets/textArea")
+table.insert(values, [[local MAXLENGTH = 255
+
+
+
+function TextToAreaData(text)
+	text = string.gsub(text, "\r", "")
+	local areaData = {}
+	local lines = user.split(text, "\n")
+
+	for i, v in ipairs(lines) do
+		local str = v
+
+		if string.len(str) > MAXLENGTH then
+			str = string.sub(str, 1, MAXLENGTH)
+		elseif string.len(str) < MAXLENGTH then
+			str = str .. "\r" .. string.rep(" ", MAXLENGTH - string.len(str) - 1)
+		end
+
+		areaData[i] = str
+	end
+
+	if #areaData == 0 then
+		areaData = { "\0\r" .. string.rep(" ", MAXLENGTH - 2) }
+	end
+
+	return areaData
+end
+
+
+
+function AreaDataToText(areaData)
+	local text = ""
+
+	for i, v in ipairs(areaData) do
+		local index = string.find(v, "\r")
+		local str = v
+
+		if index ~= nil then
+			str = string.sub(v, 1, index - 1)
+		end
+
+		text = text .. str .. "\n"
+	end
+
+	return text
+end
+
+
+function PaintAreaData(canvas, areaData, scrollX, scrollY)
+	for i, v in ipairs(areaData) do
+		if (i - scrollY > 0) and (i <= scrollY + canvas.size.y) then
+			local str = string.sub(v, scrollX, canvas.size.x)
+			canvas:setCursorPos(1, i - scrollY)
+			canvas:write(str)
+		end
+	end
+
+	return canvas
+end
+
+
+function AreaLineLen(line)
+	return string.find(line, "\r") or 0
+end
+
+
+
+function CreateEffect_HideSystemSymbols(parent)
+	local effect = {
+		parent = parent,
+		selectedText = "",
+		syntaxHighlighter = nil,
+
+
+		getSelectedText = function(self)
+			return string.gsub(string.gsub(self.selectedText, "\0", ""), "\r", "\n")
+		end,
+
+
+		isSelected = function(self, x, y)
+			if (y + self.parent.scroll.top <= #(self.parent.areaData)) and (y + self.parent.scroll.top >= 1) and
+				(x + self.parent.scroll.left - 1 < AreaLineLen(self.parent.areaData[y + self.parent.scroll.top])) then
+				if self.parent.selection.endpos.y == self.parent.selection.startpos.y then
+					if (y == self.parent.selection.startpos.y) and (x > self.parent.selection.startpos.x) and (x < self.parent.selection.endpos.x) then
+						return true
+					end
+				else
+					if (y >= self.parent.selection.startpos.y) and (y <= self.parent.selection.endpos.y) then
+						if ((x > self.parent.selection.startpos.x) and (y == self.parent.selection.startpos.y)) or
+							((x < self.parent.selection.endpos.x) and (y == self.parent.selection.endpos.y)) or
+							((y > self.parent.selection.startpos.y) and (y < self.parent.selection.endpos.y)) then
+							return true
+						end
+					end
+				end
+			end
+
+			return false
+		end,
+
+
+
+		getbgcolor = function(self, x, y, bgcolor, forecolor, char)
+			if self:isSelected(x, y) then
+				return parent.selection.style.bgcolor
+			else
+				if self.syntaxHighlighter ~= nil then
+					return self.syntaxHighlighter:getbgcolor(x, y, bgcolor, forecolor, char)
+				else
+					return bgcolor
+				end
+			end
+		end,
+
+		getforecolor = function(self, x, y, bgcolor, forecolor, char)
+			if self:isSelected(x, y) then
+				return parent.selection.style.forecolor
+			else
+				if self.syntaxHighlighter ~= nil then
+					return self.syntaxHighlighter:getforecolor(x, y, bgcolor, forecolor, char)
+				else
+					return forecolor
+				end
+			end
+		end,
+
+		getchar = function(self, x, y, bgcolor, forecolor, char)
+			if self:isSelected(x, y) then
+				self.selectedText = self.selectedText .. char
+			end
+
+			if char == "\0" then
+				return " "
+			elseif char == "\r" then
+				return " " --^
+			else
+				if self.syntaxHighlighter ~= nil then
+					return self.syntaxHighlighter:getchar(x, y, bgcolor, forecolor, char)
+				else
+					return char
+				end
+			end
+		end,
+	}
+
+	return effect
+end
+
+
+
+
+function Create(_parent, name, widgets)
+	local textArea = {
+		parent = _parent,
+		left = 1,
+		top = 1, 
+		height = 16,
+		width = 24,
+		bgcolor = colors.white,
+		forecolor = colors.black,
+		focused = false,
+		visible = true,
+		canvas = nil,
+		text = "", lastText = "",
+		tab = 0,
+		editable = true,
+		--scrollBars = "both",  --"horisontal", "vertical", "both"
+		scroll = { left = 1, top = 0},
+		buffer = nil,
+		widgets = { },
+		widgetsLib = widgets,
+		focusedWidget = nil,
+		lastZOrder = 0,
+		cursorPos = { x = 0, y = 1, text = 1},
+		--textBuffer = { { {  } } }.
+		linesLength = nil,
+		areaData = {},
+		syntaxHighlighter = nil,
+
+
+		selection = {
+			startpos = { x = 1, y = 1 },
+			endpos = { x = 1, y = 1 },
+
+			style = {
+				bgcolor = colors.blue,
+				forecolor = colors.white,
+			},
+		},
+
+
+
+		getText = function(self)
+			return string.gsub(self.text, "\0", "")
+		end,
+
+
+		setText = function(self, text)
+			text = string.gsub(text, "\n", "\0\n")
+			self.text = text or ""
+			self.buffer = nil
+		end,
+
+
+		getSelectedText = function(self)
+			if self.buffer ~= nil then
+				return self.buffer.effect:getSelectedText()
+			else
+				return ""
+			end
+		end,
+
+
+
+		refresh = function(self, refreshSyntax)
+			self.canvas = user.CreateCanvas(self.width, self.height)
+			self.canvas:fillrect(1, 1, self.width, self.height, self.bgcolor)
+			if self.scroll.left < 2 then self.scroll.left = 1 end
+
+
+
+			if self.widgets.verticalBar == nil then
+				self.widgets.verticalBar = scrollBar.Create(self, "verticalBar")
+				self.widgets.verticalBar.step = 1
+
+				self.widgets.verticalBar.onChange = function(sender)
+					self.scroll.top = self.widgets.verticalBar.value
+					self.buffer = nil
+				end
+			end
+
+			self.widgets.verticalBar.left = self.width
+			self.widgets.verticalBar.top = 0
+			self.widgets.verticalBar.height = self.height - 1
+
+
+
+			if self.widgets.horisontalBar == nil then
+				self.widgets.horisontalBar = scrollBar.Create(self, "horisontalBar")
+				self.widgets.horisontalBar.step = 1
+				self.widgets.horisontalBar.min = 1
+				self.widgets.horisontalBar.value = 2
+				self.widgets.horisontalBar.vertical = false
+
+				self.widgets.horisontalBar.onChange = function(sender)
+					self.scroll.left = self.widgets.horisontalBar.value
+					if self.scroll.left < 2 then self.scroll.left = 1 end
+					self.buffer = nil
+				end
+			end
+
+			self.widgets.horisontalBar.left = 1
+			self.widgets.horisontalBar.top = self.height - 1
+			self.widgets.horisontalBar.height = 1
+			self.widgets.horisontalBar.width = self.width - 1
+
+
+			if refreshSyntax then self.buffer = nil end
+
+			if self.buffer == nil then
+				self.buffer = user.CreateCanvas(--\[-\[-self.width - 1\]-\]-256, self.height - 1)
+				self.buffer.bgcolor = self.bgcolor
+				self.buffer.forecolor = self.forecolor
+				self.buffer.autoScroll = true
+				self.buffer.effect = CreateEffect_HideSystemSymbols(self)
+				self.buffer.effect.syntaxHighlighter = self.syntaxHighlighter
+				self.buffer:clear()
+
+				self.areaData = TextToAreaData(self.text)
+
+				if self.syntaxHighlighter then
+					self.syntaxHighlighter:setScrolling(self.scroll)
+					if refreshSyntax then self.syntaxHighlighter:parseAreaData(self.areaData, self.forecolor, self.buffer.size.x, self.buffer.size.y) end
+				end
+
+				self.buffer = PaintAreaData(self.buffer, self.areaData, self.scroll.left, self.scroll.top)
+
+
+				self.widgets.horisontalBar.max = 255
+				self.widgets.verticalBar.max = #(self.areaData) - self.height + 1
+				if self.widgets.verticalBar.max < 0 then self.widgets.verticalBar.max = 0 end
+			end
+
+			self.canvas:draw(0, 0, self.buffer)
+
+
+			self.widgets.verticalBar:refresh()
+			self.widgets.horisontalBar:refresh()
+			self.parent:getCanvas():draw(self.left - 1, self.top, self.canvas)
+			self.parent:getCanvas():setCursorPos(self.left + self.width - 1, self.top + self.height)
+			self.parent:getCanvas().bgcolor = self.parent.bgcolor
+			self.parent:getCanvas():write(" ")
+
+			self.parent.parent.os.setCaretPos(self.left + self.cursorPos.x - self.scroll.left + 1, self.top + self.cursorPos.y - self.scroll.top)
+			self.parent.parent.os.setCaretColor(self.forecolor)
+
+
+			if (self.cursorPos.x - self.scroll.left + 1 >= 0) and (self.cursorPos.y - self.scroll.top > 0) and
+				(self.cursorPos.x - self.scroll.left + 1 < self.width - 1) and (self.cursorPos.y - self.scroll.top < self.height)
+				and (self.focused) then
+				self.parent.parent.os.showCaret()
+			else
+				self.parent.parent.os.hideCaret()
+			end
+		end,
+
+
+
+		getCanvas = function(self)
+			return self.canvas
+		end,
+
+
+		mouseDrag = function(self, button, x, y)
+			x = x - self.left + 1
+			y = y - self.top
+
+			self.selection.endpos = {x = x, y = y}
+			if self.canvas.buffer ~= nil then self.canvas.buffer.effect.selectedText = "" end
+		end,
+
+
+		mouseClick = function(self, button, x, y)
+			x = x - self.left
+			y = y - self.top
+
+
+			if button == 2 then
+				local menu = self.widgetsLib.PopupMenu.Create()
+				menu.bgcolor = colors.lightGray
+				menu.tag = self
+
+				table.insert(menu.items, self.widgetsLib.PopupMenu.CreateItem("Copy", 
+					function(sender)
+						menu.tag.parent.parent.os.copyToClipboard(menu.tag:getSelectedText(), "TEXT")
+				end))
+
+				table.insert(menu.items, self.widgetsLib.PopupMenu.CreateItem("Paste", 
+					function(sender)
+						local text = menu.tag.parent.parent.os.pasteFromClipboard("TEXT")
+
+						if text ~= nil then
+							local self = sender.tag
+
+							if self.cursorPos.x > AreaLineLen(self.areaData[self.cursorPos.y]) then self.cursorPos.x = AreaLineLen(self.areaData[self.cursorPos.y]) - 1 end
+							local pre = string.sub(self.areaData[self.cursorPos.y], 1, self.cursorPos.x)
+							local post = string.sub(self.areaData[self.cursorPos.y], self.cursorPos.x + 1, string.len(self.areaData[self.cursorPos.y]) - string.len(pre))
+
+							self.areaData[self.cursorPos.y] = pre .. text .. post
+							self.areaData[self.cursorPos.y] = string.gsub(self.areaData[self.cursorPos.y], "\0", "")
+							self.cursorPos.x = self.cursorPos.x + 1
+
+
+							self.text = AreaDataToText(self.areaData)
+							self.buffer = nil
+						end
+				end))
+
+				--self.widgetsLib.popupMenu(menu, x + self.left + 1, y + self.top + 1)
+			else
+				self.selection.startpos.x = x
+				self.selection.startpos.y = y
+				self.selection.endpos = {x = 1, y = 1}
+				if self.canvas.buffer ~= nil then self.canvas.buffer.effect.selectedText = "" end
+			end
+
+
+			if (x == self.width - 1) or (y == self.height) then
+				if self.widgets.verticalBar.mouseClick ~= nil then
+					self.widgets.verticalBar:mouseClick(button, x, y)
+				end
+
+				if self.widgets.verticalBar.onMouseClick ~= nil then
+					self.widgets.verticalBar:onMouseClick(button, x, y)
+				end
+
+				if self.widgets.horisontalBar.mouseClick ~= nil then
+					self.widgets.horisontalBar:mouseClick(button, x, y)
+				end
+
+				if self.widgets.horisontalBar.onMouseClick ~= nil then
+					self.widgets.horisontalBar:onMouseClick(button, x, y)
+				end
+			else
+				if self.editable then
+					self.cursorPos.x = x + self.scroll.left - 1
+					self.cursorPos.y = y + self.scroll.top
+				end
+			end
+
+			if self.cursorPos.y > #(self.areaData) then self.cursorPos.y = #(self.areaData) end
+			if self.cursorPos.y < 1 then self.cursorPos.y = 0 end
+			if self.cursorPos.x > AreaLineLen(self.areaData[self.cursorPos.y]) - 1 then self.cursorPos.x = AreaLineLen(self.areaData[self.cursorPos.y]) - 1 end
+			if self.cursorPos.x < 0 then self.cursorPos.x = 0 end
+		end,
+
+
+
+		keyPress = function(self, key, char)
+			self.selection.endpos = {x = 1, y = 1}
+
+			if self.editable then
+				if key == keys.right then
+					self.cursorPos.x = self.cursorPos.x + 1
+					self.buffer = nil
+				elseif key == keys.left then
+					self.cursorPos.x = self.cursorPos.x - 1
+					self.buffer = nil
+				elseif key == keys.up then
+					self.cursorPos.y = self.cursorPos.y - 1
+					self.buffer = nil
+				elseif key == keys.down then
+					self.cursorPos.y = self.cursorPos.y + 1
+					self.buffer = nil
+				elseif key == keys.enter then
+
+					if self.cursorPos.x == 0 then
+						local str = self.areaData[self.cursorPos.y]
+						self.areaData[self.cursorPos.y] = "\0\r" .. string.rep(" ", MAXLENGTH - 2)
+
+						table.insert(self.areaData, self.cursorPos.y + 1, str)
+						self.cursorPos.y = self.cursorPos.y + 1
+						self.cursorPos.x = 0
+					else
+						local str = string.sub(self.areaData[self.cursorPos.y], self.cursorPos.x + 1, AreaLineLen(self.areaData[self.cursorPos.y]))
+						str = string.gsub(str, "\r", "")
+
+						if string.len(str) > MAXLENGTH then str = string.sub(str, 1, MAXLENGTH) end
+						if string.len(str) < MAXLENGTH then str = str .. "\r" .. string.rep(" ", MAXLENGTH - string.len(str) - 1) end
+
+						self.areaData[self.cursorPos.y] = string.sub(self.areaData[self.cursorPos.y], 1, self.cursorPos.x)
+						local parts = user.split(self.areaData[self.cursorPos.y], "\r")
+						self.areaData[self.cursorPos.y] = parts[1] .. "\r" .. string.rep(" ", MAXLENGTH - string.len(parts[1]) - 1)
+
+						if user.stringstarts(str, "\r") then
+							str = "\0" .. string.sub(str, 1, string.len(str) - 1)
+						end
+
+						table.insert(self.areaData, self.cursorPos.y + 1, str)
+						self.cursorPos.y = self.cursorPos.y + 1
+						self.cursorPos.x = 0
+					end
+
+					self.text = AreaDataToText(self.areaData)
+					self.buffer = nil
+
+				elseif key == keys.backspace then
+					local proc = function() 
+						if (self.cursorPos.x >= 1) then
+							if self.cursorPos.x > AreaLineLen(self.areaData[self.cursorPos.y]) then self.cursorPos.x = AreaLineLen(self.areaData[self.cursorPos.y]) - 1 end
+							local pre = string.sub(self.areaData[self.cursorPos.y], 1, self.cursorPos.x - 1)
+							local post = string.sub(self.areaData[self.cursorPos.y], self.cursorPos.x + 1, string.len(self.areaData[self.cursorPos.y]) - string.len(pre))
+
+							self.areaData[self.cursorPos.y] = pre .. post
+							self.cursorPos.x = self.cursorPos.x - 1
+						else
+							if #(self.areaData) > 1 then
+								if (self.cursorPos.x >= 1) and (self.cursorPos.y < #(self.areaData)) then
+									local pre = string.sub(self.areaData[self.cursorPos.y - 1], 1, AreaLineLen(self.areaData[self.cursorPos.y - 1]) - 1)
+									local post = string.sub(self.areaData[self.cursorPos.y], 1, AreaLineLen(self.areaData[self.cursorPos.y]) - 1)
+									pre = string.gsub(pre, "\0", "")
+
+									self.areaData[self.cursorPos.y - 1] = pre .. post .. "\r" .. string.rep(" ", MAXLENGTH - 1 - string.len(pre) - string.len(post))
+									table.remove(self.areaData, self.cursorPos.y)
+									self.cursorPos.y = self.cursorPos.y - 1
+									self.cursorPos.x = MAXLENGTH - AreaLineLen(self.areaData[self.cursorPos.y]) - 1
+								elseif (self.cursorPos.y == #(self.areaData)) and (self.cursorPos.x <= 1) then
+									if AreaLineLen(self.areaData[self.cursorPos.y]) < 1 then
+										table.remove(self.areaData, self.cursorPos.y)
+										self.cursorPos.y = self.cursorPos.y - 1
+									else
+										local pre = string.sub(self.areaData[self.cursorPos.y - 1], 1, AreaLineLen(self.areaData[self.cursorPos.y - 1]) - 1)
+										local post = string.sub(self.areaData[self.cursorPos.y], 1, AreaLineLen(self.areaData[self.cursorPos.y]) - 1)
+										pre = string.gsub(pre, "\0", "")
+
+										self.areaData[self.cursorPos.y - 1] = pre .. post .. "\r" .. string.rep(" ", MAXLENGTH - 1 - string.len(pre) - string.len(post))
+										table.remove(self.areaData, self.cursorPos.y)
+										self.cursorPos.y = self.cursorPos.y - 1
+										self.cursorPos.x = MAXLENGTH - AreaLineLen(self.areaData[self.cursorPos.y]) - 1
+									end
+								end
+							end
+						end
+					end
+
+					pcall(proc)
+
+					self.text = AreaDataToText(self.areaData)
+					self.buffer = nil
+
+				elseif key == keys.delete then
+
+					if self.cursorPos.x > AreaLineLen(self.areaData[self.cursorPos.y]) then self.cursorPos.x = AreaLineLen(self.areaData[self.cursorPos.y]) - 1 end
+					local pre = string.sub(self.areaData[self.cursorPos.y], 1, self.cursorPos.x)
+					local post = string.sub(self.areaData[self.cursorPos.y], self.cursorPos.x + 2, string.len(self.areaData[self.cursorPos.y]) - string.len(pre))
+
+					self.areaData[self.cursorPos.y] = pre .. post
+
+					self.text = AreaDataToText(self.areaData)
+					self.buffer = nil
+
+				elseif char ~= "" then
+
+					if self.cursorPos.x > AreaLineLen(self.areaData[self.cursorPos.y]) then self.cursorPos.x = AreaLineLen(self.areaData[self.cursorPos.y]) - 1 end
+					local pre = string.sub(self.areaData[self.cursorPos.y], 1, self.cursorPos.x)
+					local post = string.sub(self.areaData[self.cursorPos.y], self.cursorPos.x + 1, string.len(self.areaData[self.cursorPos.y]) - string.len(pre))
+
+					self.areaData[self.cursorPos.y] = pre .. char .. post
+					self.areaData[self.cursorPos.y] = string.gsub(self.areaData[self.cursorPos.y], "\0", "")
+					self.cursorPos.x = self.cursorPos.x + 1
+
+
+					self.text = AreaDataToText(self.areaData)
+					self.buffer = nil
+				end
+
+
+				if self.cursorPos.y > #(self.areaData) then self.cursorPos.y = #(self.areaData) end
+				if self.cursorPos.y < 1 then self.cursorPos.y = 0 end
+				if self.cursorPos.x > AreaLineLen(self.areaData[self.cursorPos.y]) then self.cursorPos.x = AreaLineLen(self.areaData[self.cursorPos.y]) - 1 end
+				if self.cursorPos.x < 0 then self.cursorPos.x = 0 end
+
+				--if AreaLineLen(self.areaData[self.cursorPos.y]) <= 0 then
+				--	self.cursorPos.y = self.cursorPos.y - 1
+				--end
+
+				self.scroll.left = self.cursorPos.x - self.width + 2
+				if self.scroll.left < 0 then self.scroll.left = 0 end
+				self.widgets.horisontalBar.value = self.scroll.left
+
+				self.scroll.top = self.cursorPos.y - self.height + 1
+				if self.scroll.top < 0 then self.scroll.top = 0 end
+				self.widgets.verticalBar.value = self.scroll.top
+
+
+
+				self:refresh()
+			end
+		end,
+
+
+	}
+
+	_parent.widgets[name] = textArea
+	_parent.lastZOrder = _parent.lastZOrder + 1
+	textArea.zOrder = _parent.lastZOrder
+	return textArea
+end]])
+table.insert(names, "/system/widgets/textView")
+table.insert(values, [[function Create(_parent, name)
+	local textArea = {
+		parent = _parent,
+		left = 1,
+		top = 1, 
+		height = 16,
+		width = 24,
+		bgcolor = colors.white,
+		forecolor = colors.black,
+		focused = false,
+		visible = true,
+		canvas = nil,
+		text = "", lastText = "",
+		tab = 0,
+		editable = false,
+		--scrollBars = "both",  --"horisontal", "vertical", "both"
+		scroll = { left = 0, top = 0},
+		buffer = nil,
+		widgets = { },
+		focusedWidget = nil,
+		lastZOrder = 0,
+		cursorPos = { x = 1, y = 1, text = 1},
+
+
+		refresh = function(self)
+			self.canvas = user.CreateCanvas(self.width, self.height)
+			self.canvas:fillrect(1, 1, self.width, self.height, self.bgcolor)
+
+			if self.widgets.verticalBar == nil then
+				self.widgets.verticalBar = scrollBar.Create(self, "verticalBar")
+				self.widgets.verticalBar.step = 1
+
+				self.widgets.verticalBar.onChange = function(sender)
+					self.scroll.top = self.widgets.verticalBar.value
+				end
+			end
+
+			self.widgets.verticalBar.left = self.width
+			self.widgets.verticalBar.top = 0
+			self.widgets.verticalBar.height = self.height
+
+
+			if (self.text ~= self.lastText) or (self.buffer == nil) then
+				self.buffer = user.CreateCanvas(self.width - 1, 1)
+				self.buffer:fillrect(1, 1, 1, 1, self.bgcolor)
+				self.buffer.bgcolor = self.bgcolor
+				self.buffer.forecolor = self.forecolor
+
+				if (self.text ~= nil) and string.len(self.text) > 0 then
+					local lines = user.split(self.text, "\n")
+					local lastY = self.buffer.cursorPos.y
+
+					for i, v in ipairs(lines) do
+						self:printLine(v)
+					end
+
+					self.widgets.verticalBar.max = self.buffer.cursorPos.y - lastY - self.height + 1
+					if self.widgets.verticalBar.max < 0 then self.widgets.scrollBar.max = 0 end
+
+					self.canvas:draw(-self.scroll.left, -self.scroll.top, self.buffer)
+				end
+
+				self.lastText = self.text
+			else
+				self.canvas:draw(-self.scroll.left, -self.scroll.top, self.buffer)
+			end
+
+			self.widgets.verticalBar:refresh()
+			self.parent:getCanvas():draw(self.left - 1, self.top, self.canvas)
+
+			self.parent.parent.os.setCaretPos(self.left + self.cursorPos.x, self.top + self.cursorPos.y)
+
+			if (self.cursorPos.x < self.width - 1) and (self.cursorPos.y - self.scroll.top < self.height) and (self.focused) then
+				self.parent.parent.os.showCaret()
+			else
+				self.parent.parent.os.hideCaret()
+			end
+		end,
+
+
+		printLine = function(self, line)
+			--self.buffer:write()
+			if string.len(line) > 0 then
+				if self.buffer.cursorPos.y > 1 then
+					self.buffer.cursorPos.x = 1
+					self.buffer.cursorPos.y = self.buffer.cursorPos.y + 1
+				end
+
+
+				line = string.gsub(line, "  ", "\2\2")
+				local words = user.split(line, " ")
+
+				for i, v in ipairs(words) do
+					if self.buffer.cursorPos.x + string.len(v) + 1 > self.width then
+						self.buffer.cursorPos.x = 1 + self.tab
+						self.buffer.cursorPos.y = self.buffer.cursorPos.y + 1
+					end
+
+					if self.buffer.cursorPos.y > self.buffer.size.y then
+						local lastSize = self.buffer.size.y
+						self.buffer.size.y = self.buffer.cursorPos.y + 1--self.buffer.size.y + 1
+
+						for y = lastSize + 1, self.buffer.size.y do
+							self.buffer.data[y] = {}
+
+							for x = 1, self.buffer.size.x do
+								self.buffer.data[y][x] = {}
+
+								self.buffer.data[y][x].bgcolor = self.bgcolor
+								self.buffer.data[y][x].forecolor = self.forecolor
+								self.buffer.data[y][x].char = " "
+							end
+						end
+					end
+
+					self.buffer:write(string.gsub(v, "\2\2", "  ") .. " ")
+				end
+
+				self.buffer.cursorPos.x = self.buffer.cursorPos.x - 1
+			end
+		end,
+
+
+		getCanvas = function(self)
+			return self.canvas
+		end,
+
+
+		mouseClick = function(self, button, x, y)
+			x = x - self.left
+			y = y - self.top
+
+			if x == self.width - 1 then
+				if self.widgets.verticalBar.mouseClick ~= nil then
+					self.widgets.verticalBar:mouseClick(button, x, y)
+				end
+
+				if self.widgets.verticalBar.onMouseClick ~= nil then
+					self.widgets.verticalBar:onMouseClick(button, x, y)
+				end
+			else
+				if self.editable then
+					self.cursorPos.x = x
+					self.cursorPos.y = y + self.scroll.top
+					self.cursorPos.text = self:getTextPosFromCPos(x, y + self.scroll.top)
+				end
+			end
+		end,
+
+
+		keyPress = function(self, key, char)
+			if self.editable then
+				if key == keys.right then
+					self.cursorPos.text = self.cursorPos.text + 1
+				elseif key == keys.left then
+					self.cursorPos.text = self.cursorPos.text - 1
+				elseif key == keys.down then
+					self.cursorPos.text = self.cursorPos.text + self.width - 1
+				elseif key == keys.up then
+					self.cursorPos.text = self.cursorPos.text - self.width + 1
+				elseif key == keys.enter then
+					local textBegin = string.sub(self.text, 1, self.cursorPos.text)
+					local textEnd = string.sub(self.text, self.cursorPos.text + 1, string.len(self.text))
+
+					self.text = textBegin .. "\n" .. textEnd
+					self.cursorPos.text = self.cursorPos.text + (self.width - self.cursorPos.y) - 1
+					self.buffer = nil
+				else
+					local textBegin = string.sub(self.text, 1, self.cursorPos.text)
+					local textEnd = string.sub(self.text, self.cursorPos.text + 1, string.len(self.text))
+
+					self.text = textBegin .. char .. textEnd
+					self.cursorPos.text = self.cursorPos.text + string.len(char)
+					self.buffer = nil
+				end
+
+
+				local x, y = self:recalculateCursorPos()
+				--self.cursorPos.x = x
+				--self.cursorPos.y = y
+
+				self:refresh()
+			end
+		end,
+
+
+		recalculateCursorPos = function(self)
+
+		end,
+
+
+		getTextPosFromCPos = function(self, cx, cy)
+			local lines = user.split(self.text, "\n")
+			local index = 0
+			local lineWidths = {}
+
+			for i, line in ipairs(lines) do
+				line = string.gsub(line, "  ", "\2\2")
+				local words = user.split(line, " ")
+				index = index + 1
+				lineWidths[index] = 0
+
+				for j, word in ipairs(words) do
+					if lineWidths[index] > self.width - 1 then
+						index = index + 1
+						lineWidths[index] = 0
+					end
+				end
+			end
+
+			local textY = 0
+			for i = 1, cy do
+				textY = textY + lineWidths[i]
+			end
+
+			local textX = textY + cx
+			return textX
+		end,
+
+
+
+
+		recalculateCursorPos2 = function(self)
+			local lines = user.split(self.text, "\n")
+			local lineWidths = {}
+			local index = 0
+			local textLen = 0
+			local yPos = 0
+			local ySet = false
+
+			for i, line in ipairs(lines) do
+				line = string.gsub(line, "  ", "\2\2")
+				local words = user.split(line, " ")
+				index = index + 1
+				lineWidths[index] = 0
+
+				for j, word in ipairs(words) do
+					if lineWidths[index] > self.width - 1 then
+						index = index + 1
+						lineWidths[index] = 0
+					end
+
+					lineWidths[index] = lineWidths[index] + string.len(word) + 1
+					textLen = textLen + string.len(word) + 1
+
+					if ySet == false and textLen > self.cursorPos.text then
+						ySet = true
+						yPos = index
+					end
+				end
+			end
+
+			local y = math.floor(self.cursorPos.text / (self.width - 1))
+			local textPos = 0
+
+			for i = 1, y do
+				textPos = textPos + lineWidths[y]
+			end
+
+			--local y = math.floor(self.cursorPos.text / (self.width - 1))
+			local y = yPos
+			local cx = self.cursorPos.text - textPos
+			local cy = y + 1
+
+			--return cx, cy
+			return 1, 1
+		end,
+
+
+
+	}
+
+	_parent.widgets[name] = textArea
+	_parent.lastZOrder = _parent.lastZOrder + 1
+	textArea.zOrder = _parent.lastZOrder
+	return textArea
+end
+
+
+
+
+
+
+
+
+--\[-\[-
+										--if (absPos - string.len(word) - 1 > self.cursorPos.text) and (absPos + string.len(word) + 1 < self.cursorPos.text) then
+					--	return cx + absPos + string.len(word) + 1 - self.cursorPos.text, cy
+					--end
+
+					xoffset = xoffset + string.len(word) + 1
+					absPos = absPos + string.len(word) + 1
+
+					if xoffset > self.width - 1 then
+						xoffset = self.tab
+						yoffset = yoffset + 1
+					end\]-\]-]])
+table.insert(names, "/system2/app.pic")
+table.insert(values, [[pic|3|4|b0 b0 b0 b0 f0 f0 f0 f0 f0 f4af4pf4p]])
+table.insert(names, "/system2/desktop.app")
+table.insert(values, [[local app = application.Create(os.getProcessInfo(os.getCurrentProcess()), os)
+local taskbar = form.Create("Taskbar")
+taskbar.controlBox = false
+
+
+app:addForm(taskbar, "Taskbar")
+taskbar:show()
+
+
+taskbar.onRefresh = function(sender)
+	app.canvas:fillrect(1, 1, app.canvas.size.x, app.canvas.size.y, colors.black)
+end
+
+os.startTimer(1, function() taskbar:refresh() end )
+app:run()]])
+table.insert(names, "/system2/folder.pic")
+table.insert(values, [[pic|3|4|41 14 14 14 41 14 14 14 41 14 14 14 ]])
+table.insert(names, "/system2/ini.pic")
+table.insert(values, [[pic|3|4|b3 b3 b3 b3 0b=0b=0b=0b=0b=0bi0bn0bi]])
+table.insert(names, "/system2/lua.pic")
+table.insert(values, [[pic|3|4|cc cc cc cc 0c=0c=0c=0c=0c=0cl0cu0ca]])
+table.insert(names, "/system2/ncvm.app")
+table.insert(values, [[local app = application.Create(os.getProcessInfo(os.getCurrentProcess()), os)
+local mainForm = form.Create("Command Prompt")
+
+app:addForm(mainForm, "Command Prompt")
+mainForm:show()
+mainForm.bgcolor = colors.black
+
+
+local surface = widgets.GLSurface.Create(mainForm, "surface")
+surface.height = app.canvas.size.y - 2
+surface.width = app.canvas.size.x
+surface.top = 2
+
+
+local argcv = {}
+if #params > 2 then
+	for i = 3, #params do
+		table.insert(argcv, params[i])
+	end
+end
+
+--local cmd = string.gsub(params[0] or "home:/rom/programs/shell", "home:/", "")
+local cmd = string.gsub(os.getSystemPath() .. "/sysWoW/rombios", "home:/", "")
+local program = loadfile(cmd)
+setfenv(program, legacyEnv)
+local thread = coroutine.create(program)
+local ended = false
+local lastVisible = false
+local running = true
+local args = argcv
+local messages = {}
+local SHELL_INIT_FLAG = false
+
+
+surface.onMouseClick = function(sender, button, x, y)
+	table.insert(messages, {message = "mouse_click", button = button, x = x, y = y - 1})
+end
+
+surface.onMouseDrag = function(sender, button, x, y)
+	table.insert(messages, {message = "mouse_drag", button = button, x = x, y = y - 1})
+end
+
+mainForm.onKeyPress = function(sender, key, char)
+	table.insert(messages, {message = "key", key = key})
+
+	if char ~= "" then
+		table.insert(messages, {message = "char", char = char})
+	end
+end
+
+mainForm.onMessage = function(sender, message)
+	if (message[1] ~= "key") and (message[1] ~= "char") and
+		(message[1] ~= "mouse_click") and (message[1] ~= "mouse_drag") then
+		table.insert(messages, message)
+	end
+end
+
+
+legacyEnv.term.clear()
+legacyEnv.term.setCursorPos(1, 1)
+legacyEnv.term.setCursorBlink(true)
+
+
+
+legacyEnv.os.getSystemPath = os.getSystemPath
+legacyEnv._WHAT_TO_RUN = string.gsub(params[2] or "", "home:/", "/")
+if string.len(legacyEnv._WHAT_TO_RUN) == 0 then
+	legacyEnv._WHAT_TO_RUN = nil
+end
+
+
+legacyEnv.os.pullEventRaw = function(target)
+	local msg = nil
+
+	while msg == nil do
+		msg = table.remove(messages)
+
+		if msg ~= nil then
+			if (target ~= nil and msg.message == target) or target == nil then
+				if msg.message == "key" then
+					return "key", msg.key
+				elseif msg.message == "char" then
+					return "char", msg.char
+				elseif msg.message == "mouse_click" then
+					return "mouse_click", msg.button, msg.x, msg.y
+				elseif msg.message == "mouse_drag" then
+					return "mouse_drag", msg.button, msg.x, msg.y
+				else
+					return unpack(msg)
+				end
+			else
+				msg = nil
+			end
+		else
+			coroutine.yield()
+		end
+	end
+end
+
+
+legacyEnv.os.pullEvent = function(target)
+	return legacyEnv.os.pullEventRaw(target)
+end
+
+
+legacyEnv.os.run = function(env, path, args)
+	print(path)
+end
+
+
+setfenv(legacyEnv.read, legacyEnv)
+
+legacyEnv.term.current = function()
+	return legacyEnv.term
+end
+
+legacyEnv.term.redirect = function(obj)
+end
+
+legacyEnv.shell = nil
+
+
+
+legacyEnv.http.request = function(url, postData, headers, handler)
+	local function onSuccess(url, handle)
+		if not handler then
+			table.insert(messages, {"http_success", url, handle})
+		else
+			handler(true, url, handle)
+		end
+	end
+
+	local function onFailure(url)
+		if not handler then
+			table.insert(messages, {"http_failure", url})
+		else
+			handler(false, url)
+		end
+	end
+
+
+	local http = os.findWindowByTitle("http service")
+	if http ~= nil then
+		os.sendMessage(http, {
+			msg = "request", 
+			url = url,
+			postData = postData,
+			headers = headers,
+			onSuccess = onSuccess,
+			onFail = onFailure
+		})
+	else
+		app:showMessage("Http service not found.\nPlease, reboot your computer.")
+	end
+end
+
+
+legacyEnv.http.post = function(url, postData, headers)
+	local result = nil
+	local waiting = true
+	local function handler(res, url, handle)
+		result = handle
+		waiting = false
+	end
+
+	legacyEnv.http.request(url, postData, headers, handler)
+	while waiting do
+		coroutine.yield()
+	end
+
+	return result
+end
+
+
+legacyEnv.http.get = function(url, headers)
+	return legacyEnv.http.post(url, nil, headers)
+end
+
+
+
+mainForm.onRefresh = function(sender)
+	os.redirectTerm(legacyEnv.term)
+	if (coroutine.status(thread) == "suspended") and running then
+		local status, message = pcall(function() assert(coroutine.resume(thread, unpack(args))) end)
+
+		if (not status) and (not ended) then
+			legacyEnv.term.setTextColor(colors.red)
+			legacyEnv.term.setBackgroundColor(colors.black)
+			legacyEnv.term.write(message)
+			ended = true
+		end
+	end
+	os.restoreTerm()
+
+	--\[-\[-if cmd == "rom/programs/shell" and not SHELL_INIT_FLAG then
+		--legacyEnv.os.run({}, "rom/startup")
+		legacyEnv.term.write(tostring(legacyEnv.shell))
+		SHELL_INIT_FLAG = true
+	end\]-\]-
+
+	local visible = os.getActiveProcess() == hwnd
+	if visible ~= lastVisible then
+		legacyEnv.term.setVisible(visible)
+		lastVisible = visible
+	end
+	legacyEnv.term.redraw()
+	legacyEnv.term.restoreCursor()
+end
+
+
+os.startTimer(0.1, function() --\[-\[-os.sendMessage(hwnd, {msg = "refresh"})\]-\]- mainForm:onRefresh() end )
+app:run()]])
+table.insert(names, "/system2/pic.pic")
+table.insert(values, [[pic|3|4|30*30*35 35 35 35 34 35 d5wd5wd5wd5w]])
+table.insert(names, "/system2/procman.app")
+table.insert(values, [[os.setActiveProcess(os.findWindowByFileName(os.getRegistryKeyValue("autorun", "1")))]])
+table.insert(names, "/system2/run/setup.wpk")
+table.insert(values, [[local names = {}
+local values = {}
+table.insert(names, "/license.txt")
+table.insert(values, \[-\[-
+CCWin - Terms and conditions
+
+1.    Preamble: This Agreement, signed on Jun 4, 2015 (hereinafter: Effective Date) governs the relationship between User, a Business Entity, (hereinafter: Licensee) and Puzzletime, a private person whose principal place of business is Moscow, Russian Federation (hereinafter: Licensor). This Agreement sets the terms, rights, restrictions and obligations on using CCWin (hereinafter: The Software) created and owned by Licensor, as detailed herein
+
+2.    License Grant: Licensor hereby grants Licensee a Sublicensable, Non-assignable & non-transferable, Pepetual, Non-commercial, Including the rights to distribute derivative works, Non-exclusive license, all with accordance with the terms set forth and other legal restrictions set forth in 3rd party software used while running Software.
+
+    2.1    Limited: Licensee may use Software for the purpose of:
+        2.1.1    Running Software on Licensee’s Website[s] and Server[s];
+        2.1.2    Allowing 3rd Parties to run Software on Licensee’s Website[s] and Server[s];
+        2.1.3    Publishing Software’s output to Licensee and 3rd Parties;
+        2.1.4    Distribute verbatim copies of Software’s output (including compiled binaries);
+        2.1.5    Modify Software to suit Licensee’s needs and specifications.
+    2.2    This license is granted perpetually, as long as you do not materially breach it.
+
+    2.3    Non Assignable & Non-Transferable: Licensee may not assign or transfer his rights and duties under this license.
+
+    2.4    Non-Commercial: Licensee may not use Software for commercial purposes. for the purpose of this license, commercial purposes means that a 3rd party has to pay in order to access Software or that the Website that runs Software is behind a paywall.
+
+    2.5    Including the right to Distribute Derivative Works: Licensee may create and distribute derivative works based on Software, including amending Software’s source code, modifying it, integrating it into a larger work or removing portions of Software, as long as credit to the Licensor is granted and that redistribution is made under the terms of this license.
+
+    2.6    With Attribution Requirements﻿: Mentioning in the "About" screen (and in documentation, if present)
+
+    2.7    [Multi-]Site: Licensee may use Software on unlimited server[s] and unlimited website[s], for Licensee’s websites only 
+3.    Term & Termination: The Term of this license shall be until terminated. Licensor may terminate this Agreement, including Licensee’s license in the case where Licensee :
+
+    3.1    became insolvent or otherwise entered into any liquidation process; or
+
+    3.2    exported The Software to any jurisdiction where licensor may not enforce his rights under this agreements in; or
+
+    3.3    Licensee was in breach of any of this license's terms and conditions and such breach was not cured, immediately upon notification; or
+
+    3.4    Licensee in breach of any of the terms of clause 2 to this license; or
+
+    3.5    Licensee otherwise entered into any arrangement which caused Licensor to be unable to enforce his rights under this License.
+4.    Payment: In consideration of the License granted under clause 2, Licensee shall pay Licensor a fee, via Credit-Card, PayPal or any other mean which Licensor may deem adequate. Failure to perform payment shall construe as material breach of this Agreement.
+
+5.    Upgrades, Updates and Fixes: Licensor may provide Licensee, from time to time, with Upgrades, Updates or Fixes, as detailed herein and according to his sole discretion. Licensee hereby warrants to keep The Software up-to-date and install all relevant updates and fixes, and may, at his sole discretion, purchase upgrades, according to the rates set by Licensor. Licensor shall provide any update or Fix free of charge; however, nothing in this Agreement shall require Licensor to provide Updates or Fixes.
+
+    5.1    Upgrades: for the purpose of this license, an Upgrade shall be a material amendment in The Software, which contains new features and or major performance improvements and shall be marked as a new version number. For example, should Licensee purchase The Software under version 1.X.X, an upgrade shall commence under number 2.0.0.
+
+    5.2    Updates: for the purpose of this license, an update shall be a minor amendment in The Software, which may contain new features or minor improvements and shall be marked as a new sub-version number. For example, should Licensee purchase The Software under version 1.1.X, an upgrade shall commence under number 1.2.0.
+
+    5.3    Fix: for the purpose of this license, a fix shall be a minor amendment in The Software, intended to remove bugs or alter minor features which impair the The Software's functionality. A fix shall be marked as a new sub-sub-version number. For example, should Licensee purchase Software under version 1.1.1, an upgrade shall commence under number 1.1.2.
+
+6.    Support: Software is provided under an AS-IS basis and without any support, updates or maintenance. Nothing in this Agreement shall require Licensor to provide Licensee with support or fixes to any bug, failure, mis-performance or other defect in The Software.
+
+    6.1    Bug Notification: Licensee may provide Licensor of details regarding any bug, defect or failure in The Software promptly and with no delay from such event; Licensee shall comply with Licensor's request for information regarding bugs, defects or failures and furnish him with information, screenshots and try to reproduce such bugs, defects or failures.
+
+    6.2    Feature Request: Licensee may request additional features in Software, provided, however, that (i) Licensee shall waive any claim or right in such feature should feature be developed by Licensor; (ii) Licensee shall be prohibited from developing the feature, or disclose such feature request, or feature, to any 3rd party directly competing with Licensor or any 3rd party which may be, following the development of such feature, in direct competition with Licensor; (iii) Licensee warrants that feature does not infringe any 3rd party patent, trademark, trade-secret or any other intellectual property right; and (iv) Licensee developed, envisioned or created the feature solely by himself.
+
+7.    Liability:  To the extent permitted under Law, The Software is provided under an AS-IS basis. Licensor shall never, and without any limit, be liable for any damage, cost, expense or any other payment incurred by Licensee as a result of Software’s actions, failure, bugs and/or any other interaction between The Software  and Licensee’s end-equipment, computers, other software or any 3rd party, end-equipment, computer or services.  Moreover, Licensor shall never be liable for any defect in source code written by Licensee when relying on The Software or using The Software’s source code.
+
+8.    Warranty:  
+
+    8.1    Intellectual Property: Licensor hereby warrants that The Software does not violate or infringe any 3rd party claims in regards to intellectual property, patents and/or trademarks and that to the best of its knowledge no legal action has been taken against it for any infringement or violation of any 3rd party intellectual property rights.
+
+    8.2    No-Warranty: The Software is provided without any warranty; Licensor hereby disclaims any warranty that The Software shall be error free, without defects or code which may cause damage to Licensee’s computers or to Licensee, and that Software shall be functional. Licensee shall be solely liable to any damage, defect or loss incurred as a result of operating software and undertake the risks contained in running The Software on License’s Server[s] and Website[s].
+
+    8.3    Prior Inspection: Licensee hereby states that he inspected The Software thoroughly and found it satisfactory and adequate to his needs, that it does not interfere with his regular operation and that it does meet the standards and scope of his computer systems and architecture. Licensee found that The Software interacts with his development, website and server environment and that it does not infringe any of End User License Agreement of any software Licensee may use in performing his services. Licensee hereby waives any claims regarding The Software's incompatibility, performance, results and features, and warrants that he inspected the The Software.
+
+9.    No Refunds: Licensee warrants that he inspected The Software according to clause 7(c) and that it is adequate to his needs. Accordingly, as The Software is intangible goods, Licensee shall not be, ever, entitled to any refund, rebate, compensation or restitution for any reason whatsoever, even if The Software contains material flaws.
+
+10.    Indemnification: Licensee hereby warrants to hold Licensor harmless and indemnify Licensor for any lawsuit brought against it in regards to Licensee’s use of The Software in means that violate, breach or otherwise circumvent this license, Licensor's intellectual property rights or Licensor's title in The Software. Licensor shall promptly notify Licensee in case of such legal action and request Licensee’s consent prior to any settlement in relation to such lawsuit or claim.
+
+11.    Governing Law, Jurisdiction: Licensee hereby agrees not to initiate class-action lawsuits against Licensor in relation to this license and to compensate Licensor for any legal fees, cost or attorney fees should any claim brought by Licensee against Licensor be denied, in part or in full. 
+\]-\]-)
+table.insert(names, "/logo.pic")
+table.insert(values, \[-\[-pic|7|32|b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=30 00 00 30 b9=30 00 00 30 30 00 30 b9=b9=30 b9=b9=30 00 30 00 30 00 00 30 b9=00 b9=b9=b9=b9=30 00 30 30 00 30 00 30 30 00 30 30 00 30 30 00 30 30 00 30 30 00 30 00 00 30 30 00 30 b9=b9=b9=30 00 30 30 30 30 00 30 30 30 30 30 00 30 00 30 00 30 00 30 30 00 30 00 30 00 30 00 30 b9=b9=b9=30 00 30 30 00 30 00 30 30 00 30 30 00 30 00 30 00 30 00 30 30 00 30 00 30 00 30 00 30 b9=b9=b9=b9=30 00 00 30 b9=30 00 00 30 b9=b9=30 00 30 b9=30 00 30 b9=30 00 30 00 b9=30 00 00 b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=b9=\]-\]-)
+table.insert(names, "/package/data/dummy.txt")
+table.insert(values, \[-\[-Delete me, I've done my job.\]-\]-)
+table.insert(names, "/package/download.ini")
+table.insert(values, \[-\[-[meta]
+dpath = https://raw.githubusercontent.com/8coon/ccwin/master/src/
+
+[download]
+winldr = winldr
+startup = startup
+%PATH%/license.txt = CCWin/license.txt
+%PATH%/logo.pic = CCWin/logo.pic
+
+%PATH%/assets/Miku/balloon.pic = CCWin/assets/Miku/balloon.pic
+%PATH%/assets/Miku/down.pic = CCWin/assets/Miku/down.pic
+%PATH%/assets/Miku/happy1.pic = CCWin/assets/Miku/happy1.pic
+%PATH%/assets/Miku/happy2.pic = CCWin/assets/Miku/happy2.pic
+%PATH%/assets/Miku/idle.pic = CCWin/assets/Miku/idle.pic
+%PATH%/assets/Miku/s1.pic = CCWin/assets/Miku/s1.pic
+%PATH%/assets/Miku/s2.pic = CCWin/assets/Miku/s2.pic
+%PATH%/assets/Miku/up.pic = CCWin/assets/Miku/up.pic
+
+%PATH%/drivers/0fs.app = CCWin/drivers/0fs.app
+%PATH%/drivers/http.app = CCWin/drivers/http.app
+%PATH%/drivers/kernel = CCWin/drivers/kernel
+%PATH%/drivers/etc/hosts = CCWin/drivers/etc/hosts
+
+%PATH%/locale/EN-US/setup.ini = CCWin/locale/EN-US/setup.ini
+
+%PATH%/sysWoW/pack = CCWin/sysWoW/pack
+%PATH%/sysWoW/ping = CCWin/sysWoW/ping
+%PATH%/sysWoW/rombios = CCWin/sysWoW/rombios
+%PATH%/sysWoW/shrinkwin = CCWin/sysWoW/shrinkwin
+
+%PATH%/system/application = CCWin/system/application
+%PATH%/system/dialogs = CCWin/system/dialogs
+%PATH%/system/form = CCWin/system/form
+%PATH%/system/iniFiles = CCWin/system/iniFiles
+%PATH%/system/pathutils = CCWin/system/pathutils
+%PATH%/system/user = CCWin/system/user
+%PATH%/system/commonDialogs/openDialog = CCWin/system/commonDialogs/openDialog
+%PATH%/system/commonDialogs/saveDialog = CCWin/system/commonDialogs/saveDialog
+%PATH%/system/widgets/button = CCWin/system/widgets/button
+%PATH%/system/widgets/checkbox = CCWin/system/widgets/checkbox
+%PATH%/system/widgets/edit = CCWin/system/widgets/edit
+%PATH%/system/widgets/fileListView = CCWin/system/widgets/fileListView
+%PATH%/system/widgets/glSurface = CCWin/system/widgets/glSurface
+%PATH%/system/widgets/label = CCWin/system/widgets/label
+%PATH%/system/widgets/listBox = CCWin/system/widgets/listBox
+%PATH%/system/widgets/listView = CCWin/system/widgets/listView
+%PATH%/system/widgets/menuBar = CCWin/system/widgets/menuBar
+%PATH%/system/widgets/paintBox = CCWin/system/widgets/paintBox
+%PATH%/system/widgets/panel = CCWin/system/widgets/panel
+%PATH%/system/widgets/popupMenu = CCWin/system/widgets/popupMenu
+%PATH%/system/widgets/progressBar = CCWin/system/widgets/progressBar
+%PATH%/system/widgets/textArea = CCWin/system/widgets/textArea
+%PATH%/system/widgets/textView = CCWin/system/widgets/textView
+%PATH%/system/widgets/scrollBar = CCWin/system/widgets/scrollBar
+%PATH%/system/widgets/shdocvw = CCWin/system/widgets/shdocvw
+
+%PATH%/system2/app.pic = CCWin/system2/app.pic
+%PATH%/system2/control.app = CCWin/system2/control.app
+%PATH%/system2/date.pic = CCWin/system2/date.pic
+%PATH%/system2/desktop.app = CCWin/system2/desktop.app
+%PATH%/system2/display.pic = CCWin/system2/display.pic
+%PATH%/system2/exec.app = CCWin/system2/exec.app
+%PATH%/system2/explorer.app = CCWin/system2/explorer.app
+%PATH%/system2/folder.pic = CCWin/system2/folder.pic
+%PATH%/system2/hardware.pic = CCWin/system2/hardware.pic
+%PATH%/system2/ini.pic = CCWin/system2/ini.pic
+%PATH%/system2/lnkcreate.app = CCWin/system2/lnkcreate.app
+%PATH%/system2/lnkview.app = CCWin/system2/lnkview.app
+%PATH%/system2/lua.pic = CCWin/system2/lua.pic
+%PATH%/system2/luaedit.app = CCWin/system2/luaedit.app
+%PATH%/system2/luaedit.ini = CCWin/system2/luaedit.ini
+%PATH%/system2/ncvm.app = CCWin/system2/ncvm.app
+%PATH%/system2/network.pic = CCWin/system2/network.pic
+%PATH%/system2/notepad.app = CCWin/system2/notepad.app
+%PATH%/system2/opendlg.app = CCWin/system2/opendlg.app
+%PATH%/system2/paintbrush.app = CCWin/system2/paintbrush.app
+%PATH%/system2/pic.pic = CCWin/system2/pic.pic
+%PATH%/system2/ping.app = CCWin/system2/ping.app
+%PATH%/system2/procman.app = CCWin/system2/procman.app
+%PATH%/system2/proctrap.app = CCWin/system2/proctrap.app
+%PATH%/system2/progcomp.app = CCWin/system2/progcomp.app
+%PATH%/system2/programs.pic = CCWin/system2/programs.pic
+%PATH%/system2/setup.app = CCWin/system2/setup.app
+%PATH%/system2/shldr.app = CCWin/system2/shldr.app
+%PATH%/system2/shutdown.app = CCWin/system2/shutdown.app
+%PATH%/system2/system.pic = CCWin/system2/system.pic
+%PATH%/system2/taskbar.app = CCWin/system2/taskbar.app
+%PATH%/system2/txt.pic = CCWin/system2/txt.pic
+%PATH%/system2/unknown.pic = CCWin/system2/unknown.pic
+%PATH%/system2/win.ini = CCWin/system2/win.ini
+%PATH%/system2/winver.app = CCWin/system2/winver.app
+%PATH%/system2/tasktrap.app = CCWin/system2/tasktrap.app
+
+%PATH%/userdata/Documents/dummy.txt = CCWin/userdata/Documents/dummy.txt\]-\]-)
+table.insert(names, "/package/package.ini")
+table.insert(values, \[-\[-[package]
+title = %APPNAME% %VERSION%
+path = %PATH%
+obligatory = true\]-\]-)
+table.insert(names, "/package/shortcuts.ini")
+table.insert(values, \[-\[-[shortcut_1]
+location = %DESKTOP%/Explorer.lnk
+path = explorer
+icon = %SYSTEM_FILES%/folder.pic
+
+[shortcut_2]
+location = %DESKTOP%/Notepad.lnk
+path = notepad
+icon = %SYSTEM_FILES%/txt.pic
+
+[shortcut_3]
+location = %DESKTOP%/LUAEdit.lnk
+path = luaedit
+icon = %SYSTEM_FILES%/lua.pic
+
+[shortcut_4]
+location = %DESKTOP%/Shell.lnk
+path = ncvm
+icon = %SYSTEM_FILES%/app.pic
+
+[shortcut_5]
+location = %DESKTOP%/Paintbrush.lnk
+path = paintbrush
+icon = %SYSTEM_FILES%/pic.pic
+
+
+[shortcut_6]
+location = %SETTINGS%/Win.ini.lnk
+path = %SYSTEM_FILES%/win.ini
+icon = %SYSTEM_FILES%/ini.pic
+
+[shortcut_7]
+location = %SETTINGS%/Boot.ini.lnk
+path = "home:/boot.ini"
+icon = %SYSTEM_FILES%/ini.pic
+
+[shortcut_8]
+location = %SETTINGS%/Control Panel.lnk
+path = control
+icon = %SYSTEM_FILES%/programs.pic
+
+
+[shortcut_9]
+location = %PROGRAMS%/Explorer.lnk
+path = explorer
+icon = %SYSTEM_FILES%/folder.pic
+
+[shortcut_10]
+location = %PROGRAMS%/LUA Editor.lnk
+path = luaedit
+icon = %SYSTEM_FILES%/lua.pic
+
+[shortcut_11]
+location = %PROGRAMS%/Notepad.lnk
+path = notepad
+icon = %SYSTEM_FILES%/txt.pic
+
+[shortcut_12]
+location = %PROGRAMS%/Paintbrush.lnk
+path = paintbrush
+icon = %SYSTEM_FILES%/pic.pic
+
+[shortcut_13]
+location = %PROGRAMS%/NCVM Shell.lnk
+path = ncvm
+icon = %SYSTEM_FILES%/app.pic\]-\]-)
+table.insert(names, "/setup.ini")
+table.insert(values, \[-\[-[application]
+name = CCWin
+version = 1.0.0
+company = 8coon
+path = CCWin
+list = true
+header = logo.pic
+bg = white
+override = true
+uninstall = false
+os = true
+
+[extentions]
+txt = notepad "%FILENAME%"
+ini = notepad "%FILENAME%"
+lua = luaedit "%FILENAME%"
+lnk = lnkview "%FILENAME%"
+pic = paintbrush "%FILENAME%"
+wpk = setup "%FILENAME%"
+
+[license]
+show = true
+file = license.txt
+blindly = false
+
+[path]
+show = true
+editable = true
+
+[components]
+show = true
+default = package
+
+[after]
+run = true
+cmd = %PATH%/conf.app
+
+[run_installed]
+show = false
+checked = false
+cmd = ""
+
+[show_readme]
+show = false
+checked = true
+cmd = notepad "%PATH%/readme.txt"\]-\]-)
+local args = {...}
+local path = args[2] or "/temp"
+if not xwin then
+	path = args[1] or "/temp"
+end
+
+function _utStrSplit(self, sep)
+	local sep, fields = sep or ":", {}
+	local pattern = string.format("([^%s]+)", sep)
+	self:gsub(pattern, function(c) fields[#fields+1] = c end)
+	return fields
+end
+
+print("Unpacking LRC...")
+
+fs.makeDir(path)
+for i = 1, #names do
+	local l = _utStrSplit(names[i], "/")
+	local p = ""
+	if #l > 1 then
+		pcall(function()
+			for i = 1, #p - 2 do
+				p = p .. "/" .. l[i]
+			end
+		end)
+	end
+
+	pcall(function()
+		print("Unpacking " .. names[i] .. "...")
+		fs.makeDir(path .. "/" .. p)
+		local file = fs.open(path .. "/" .. names[i], "w")
+		values[i] = string.gsub(values[i], "\\%[%-\\%[%-", "%[%[")
+		values[i] = string.gsub(values[i], "\\%]%-\\%]%-", "%]%]")
+		file.write(values[i])
+		file.close()
+	end)
+end
+print("Done!")
+return names, values]])
+table.insert(names, "/system2/run/startup.app")
+table.insert(values, [[local app = application.Create(os.getProcessInfo(os.getCurrentProcess()), os)
+local desktop = form.Create("Setup Wizard")
+
+
+local lang = "EN-US"
+local locale = iniFiles.read(os.getSystemPath() .. "/locale/" .. lang .. "/setup.ini").locale
+local installing = false
+local uninstalling = false
+
+local setup = nil
+if params[2] == nil then
+	params[2] = "/w/system2/run/setup.wpk"
+	if not fs.exists(params[2]) then
+		error(locale["30"])
+	end
+end
+
+fs.delete("/temp/")
+local handler = os.shell.run("ncvm \"" .. params[2] .. "\" \"/Temp/\"")
+local running = true
+
+while running do
+	coroutine.yield()
+	local ls = os.getValidHWNDList()
+	local found = false
+	for k, v in pairs(ls) do
+		if v == handler then
+			found = true
+		end
+	end
+
+	if not found then
+		running = false
+		os.setActiveProcess(hwnd)
+	end
+end
+
+setup = iniFiles.read("home:/Temp/setup.ini")
+
+
+setup.components.show = "false"
+
+if params[3] == "-uninstall" then
+	uninstalling = true
+	setup.license.show = "false"
+	setup.path.show = "false"
+	setup.components.show = "false"
+end
+
+lastSystemPath = os.getSystemPath
+os.getSystemPath = function()
+	if setup.application.os == "true" then
+		return setup.application.path
+	else
+		return lastSystemPath()
+	end
+end
+
+
+
+local function expandVars(s, p)
+	local function getProgramPath()
+		return "home:/Programs/"
+	end
+
+	local vars = {
+		["%%APPNAME%%"]          = setup.application.name,
+		["%%VERSION%%"]          = setup.application.version,
+		["%%COMPANY%%"]          = setup.application.company,
+		["%%PROGRAM%%"]          = getProgramPath(),
+		["%%BLINDLY%%"]          = " ",
+		["%%DESKTOP%%"]          = os.getSystemPath() .. "/userdata/Desktop/",
+		["%%DOCUMENTS%%"]        = os.getSystemPath() .. "/userdata/Documents/",
+		["%%PROGRAM_GROUPS%%"]   = os.getSystemPath() .. "/userdata/ProgramGroups/",
+		["%%PROGRAMS%%"]         = os.getSystemPath() .. "/userdata/ProgramGroups/Programs/",
+		["%%SETTINGS%%"]         = os.getSystemPath() .. "/userdata/ProgramGroups/Settings/",
+		["%%SYSTEM%%"]           = os.getSystemPath(),
+		["%%DRIVERS%%"]          = os.getSystemPath() .. "/drivers/",
+		["%%SYSTEM_MODULES%%"]   = os.getSystemPath() .. "/system/",
+		["%%SYSTEM_FILES%%"]     = os.getSystemPath() .. "/system2/",
+		["%%CRAFTOS%%"]          = os.getSystemPath() .. "/sysWoW/",
+	}
+
+	if not p then vars["%%PATH%%"] = expandVars(setup.application.path, true) end
+	if setup.license.blindly == "true" then vars["%%BLINDLY%%"] = " blindly " end
+
+	for k, v in pairs(vars) do
+		s = string.gsub(s, k, v)
+	end
+
+	return s
+end
+	
+
+
+
+local frmStart = form.Create("Welcome")
+app:addForm(frmStart, "Welcome")
+if setup.application.os == "true" then
+	frmStart.controlBox = false
+end
+
+local lbl1 = widgets.Label.Create(frmStart, "lbl1")
+lbl1.left = 2
+lbl1.top = 7
+lbl1.caption = expandVars(locale["3"])
+lbl1.width = app.canvas.size.x - 2
+lbl1.height = 1
+
+local lbl2 = widgets.Label.Create(frmStart, "lbl2")
+lbl2.left = 2
+lbl2.top = 9
+lbl2.caption = expandVars(locale["4"])
+lbl2.width = app.canvas.size.x - 2
+lbl2.height = 1
+
+local lbl3 = widgets.Label.Create(frmStart, "lbl3")
+lbl3.left = 2
+lbl3.top = 10
+lbl3.caption = expandVars(locale["5"])
+lbl3.width = app.canvas.size.x - 2
+lbl3.height = 1
+
+local lbl4 = widgets.Label.Create(frmStart, "lbl4")
+lbl4.left = 2
+lbl4.top = 12
+lbl4.caption = expandVars(locale["6"])
+lbl4.width = app.canvas.size.x - 2
+lbl4.height = 1
+
+local picHeader1 = widgets.PaintBox.Create(frmStart, "picHeader")
+picHeader1.left = 0
+picHeader1.top = 1
+picHeader1.width = app.canvas.size.x + 1
+picHeader1.height = 5
+picHeader1:refresh()
+if fs.exists("/Temp/" .. setup["application"].header) then
+	local canvas = user.loadCanvas("home:/Temp/" .. setup.application.header):scale(picHeader1.width, picHeader1.height)
+	picHeader1.canvas:draw(0, 0, canvas)
+end
+
+local btnNext = widgets.Button.Create(frmStart, "btnNext")
+btnNext.width = 9
+btnNext.left = app.canvas.size.x - btnNext.width
+btnNext.top = app.canvas.size.y - 2
+btnNext.caption = expandVars(locale["1"])
+
+local btnBack = widgets.Button.Create(frmStart, "btnBack")
+btnBack.width = 9
+btnBack.left = 2
+btnBack.top = app.canvas.size.y - 2
+btnBack.caption = expandVars(locale["7"])
+
+btnBack.onClick = function(sender)
+	os.messageBox("message", expandVars(locale["8"]), expandVars(locale["9"]), 
+		{ 
+			{caption = expandVars(locale["11"]), 
+				onClick = function(sender)
+					os.hideMessageBox()
+				end
+			},
+			{caption = expandVars(locale["10"]), 
+				onClick = function(sender)
+					app:terminate()
+				end
+			},
+		}, "defText")
+end
+
+local frmLicense = form.Create("License Agreement")
+app:addForm(frmLicense, "License Agreement")
+if setup.application.os == "true" then
+	frmLicense.controlBox = false
+end
+
+local frmPath = form.Create("Installation Path")
+app:addForm(frmPath, "Installation Path")
+if setup.application.os == "true" then
+	frmPath.controlBox = false
+end
+
+local frmComponents = form.Create("Installation Components")
+app:addForm(frmComponents, "Installation Components")
+if setup.application.os == "true" then
+	frmComponents.controlBox = false
+end
+
+local frmReady = form.Create("Ready")
+app:addForm(frmReady, "Ready")
+if setup.application.os == "true" then
+	frmReady.controlBox = false
+end
+
+local frmProgress = form.Create("Installation in progress...")
+app:addForm(frmProgress, "Installation in progress...")
+if setup.application.os == "true" then
+	frmProgress.controlBox = false
+end
+
+local frmSuccess = form.Create("Installation Complete")
+app:addForm(frmSuccess, "Installation Complete")
+if setup.application.os == "true" then
+	frmSuccess.controlBox = false
+end
+
+local lblStatus = widgets.Label.Create(frmProgress, "lblStatus")
+lblStatus.left = 2
+lblStatus.top = 12
+lblStatus.caption = ""
+lblStatus.width = app.canvas.size.x - 2
+lblStatus.height = 1
+
+local pbProgress = widgets.ProgressBar.Create(frmProgress, "pbProgress")
+pbProgress.left = 2
+pbProgress.top = 10
+pbProgress.caption = ""
+pbProgress.width = app.canvas.size.x - 2
+pbProgress.height = 1
+
+btnNext.onClick = function(sender)
+	if uninstalling then
+		frmProgress:show()
+
+		app:createThread(function()
+			local function uninstallPackage(name)
+				local function countFiles(path)
+					local result = 0
+					local ls = fs.list(tostring(string.gsub(path, "home:/", "")))
+					pbProgress.max = #ls
+					pbProgress.position = 0
+					coroutine.yield()
+
+					for i, v in ipairs(ls) do
+						if (v ~= ".") and (v ~= "..") then
+							if fs.isDir(tostring(string.gsub(path, "home:/", "") .. "/" .. v)) then
+								result = result + countFiles(path .. "/" .. v)
+							else
+								result = result + 1
+								pbProgress.position = pbProgress.position + 1
+								coroutine.yield()
+							end
+						end
+					end
+					return result
+				end
+
+				local function copyFiles(parent, path)
+					local fullPath = tostring(string.gsub(parent .. "/" .. path, "home:/", ""))
+					local ls = fs.list(fullPath)
+					for k, v in pairs(ls) do
+						if fs.isDir(fullPath .. "/" .. v) then
+							copyFiles(parent, path .. "/" .. v)
+						else
+							local copyTo = tostring(string.gsub(expandVars("%PATH%"), "home:/", "/"))
+							fs.makeDir(copyTo .. "/" .. path)
+
+							local status, message = pcall(function()
+								fs.delete(copyTo .. "/" .. path .. "/" .. v)
+							end)
+
+							pbProgress.position = pbProgress.position + 1
+							coroutine.yield()
+						end
+					end
+				end
+
+				lblStatus.caption = expandVars(locale["31"])
+				
+				local package = iniFiles.read("home:/Temp/" .. name .. "/package.ini")
+				local total = countFiles("home:/Temp/" .. name .. "/data/")
+
+				pbProgress.max = total
+				pbProgress.position = 0
+				lblStatus.caption = ""
+				coroutine.yield()
+
+				lblStatus.caption = expandVars(locale["32"])
+				copyFiles("home:/Temp/" .. name .. "/data", "/")
+				lblStatus.caption = ""
+				coroutine.yield()
+
+				pbProgress.position = 0
+				lblStatus.caption = expandVars(locale["32"])
+				coroutine.yield()
+
+				local shortcuts = iniFiles.read("home:/Temp/" .. name .. "/shortcuts.ini")
+				pbProgress.max = 0
+				for k, v in pairs(shortcuts) do
+					pbProgress.max = pbProgress.max + 1
+				end
+
+				for k, v in pairs(shortcuts) do
+					fs.delete(expandVars(v.location))
+				end
+
+			end
+
+			installing = true
+			uninstallPackage(setup.components.default)
+
+			pbProgress.position = 0
+			lblStatus.caption = ""
+			coroutine.yield()
+
+			for k, v in pairs((setup.extentions) or {}) do
+				os.setRegistryKeyValue("extensions", k, "")
+			end
+
+			os.setRegistryKeyValue("installed", setup.application.name .. " " .. setup.application.version, nil)
+
+			frmSuccess:show()
+			coroutine.yield()
+			installing = false
+		end)
+	else
+		if setup.license.show == "true" then
+			frmLicense:show()
+		else
+			if setup.path.show == "true" then
+				frmPath:show()
+			else
+				if setup.components.show == "true" then
+					frmComponents:show()
+				else
+					frmReady:show()
+				end
+			end
+		end
+	end
+end
+
+
+
+
+local txtLicense = widgets.TextArea.Create(frmLicense, "txtLicense", widgets)
+txtLicense.left = 2
+txtLicense.top = 2
+txtLicense.height = app.canvas.size.y - 7
+txtLicense.width = app.canvas.size.x - 2
+txtLicense.text = ""
+
+if fs.exists("/Temp/" .. setup.license.file) then
+	local file = fs.open("/Temp/" .. setup.license.file, "r")
+	txtLicense.text = file.readAll()
+	file.close()
+end
+
+local chkAccept = widgets.CheckBox.Create(frmLicense, "chkAccept")
+chkAccept.left = 2
+chkAccept.top = txtLicense.height + 3
+chkAccept.width = app.canvas.size.x - 2
+chkAccept.caption = expandVars(locale["12"])
+chkAccept.checked = false
+
+local btnNext = widgets.Button.Create(frmLicense, "btnNext")
+btnNext.width = 9
+btnNext.left = app.canvas.size.x - btnNext.width
+btnNext.top = app.canvas.size.y - 2
+btnNext.caption = expandVars(locale["1"])
+
+local btnBack = widgets.Button.Create(frmLicense, "btnBack")
+btnBack.width = 9
+btnBack.left = 2
+btnBack.top = app.canvas.size.y - 2
+btnBack.caption = expandVars(locale["2"])
+
+btnBack.onClick = function(sender)
+	frmStart:show()
+end
+
+btnNext.onClick = function(sender)
+	if chkAccept.checked then
+		if setup.path.show == "true" then
+			frmPath:show()
+		else
+			if setup.components.show == "true" then
+				frmComponents:show()
+			else
+				frmReady:show()
+			end
+		end
+	else
+		os.messageBox("message", expandVars(locale["13"]), expandVars(locale["14"]), 
+			{ 
+				{caption = expandVars(locale["15"]), 
+					onClick = function(sender)
+						os.hideMessageBox()
+					end
+				},
+			}, "defText")
+	end
+end
+
+
+
+local openDialog = widgets.dialogs.OpenDialog.Create(frmPath, "OpenDialog")
+openDialog.dirOnly = true
+
+openDialog.onExecute = function(sender)
+	sender.parent.widgets.txtPath.text = sender.fileName or sender.parent.widgets.txtPath.text
+	os.sendMessage(hwnd, {msg = "refresh"})
+end
+
+local picHeader1 = widgets.PaintBox.Create(frmPath, "picHeader")
+picHeader1.left = 0
+picHeader1.top = 1
+picHeader1.width = app.canvas.size.x + 1
+picHeader1.height = 5
+picHeader1:refresh()
+if fs.exists("/Temp/" .. setup["application"].header) then
+	local canvas = user.loadCanvas("home:/Temp/" .. setup.application.header):scale(picHeader1.width, picHeader1.height)
+	picHeader1.canvas:draw(0, 0, canvas)
+end
+
+local lbl1 = widgets.Label.Create(frmPath, "lbl1")
+lbl1.left = 2
+lbl1.top = 9
+lbl1.caption = expandVars(locale["16"])
+lbl1.width = app.canvas.size.x - 2
+lbl1.height = 1
+
+local txtPath = widgets.Edit.Create(frmPath, "txtPath")
+txtPath.width = app.canvas.size.x - 6
+txtPath.left = 2
+txtPath.top = 11
+txtPath.text = expandVars("%PATH%")
+
+local btnBrowse = widgets.Button.Create(frmPath, "btnBrowse")
+btnBrowse.width = 2
+btnBrowse.left = app.canvas.size.x - btnBrowse.width
+btnBrowse.top = 11
+btnBrowse.forecolor2 = btnBrowse.forecolor
+btnBrowse.caption = ".."
+btnBrowse.onClick = function(sender)
+	openDialog:execute()
+end
+
+if setup.path.editable == "false" then
+	btnBrowse.visible = false
+	txtPath.editable = false
+	txtPath.width = txtPath.width + 4
+end
+
+local btnNext = widgets.Button.Create(frmPath, "btnNext")
+btnNext.width = 9
+btnNext.left = app.canvas.size.x - btnNext.width
+btnNext.top = app.canvas.size.y - 2
+btnNext.caption = expandVars(locale["1"])
+
+local btnBack = widgets.Button.Create(frmPath, "btnBack")
+btnBack.width = 9
+btnBack.left = 2
+btnBack.top = app.canvas.size.y - 2
+btnBack.caption = expandVars(locale["2"])
+
+btnBack.onClick = function(sender)
+	if setup.license.show == "true" then
+		frmLicense:show()
+	else
+		frmStart:show()
+	end
+end
+
+btnNext.onClick = function(sender)
+	if setup.components.show == "true" then
+		frmComponents:show()
+	else
+		frmReady:show()
+	end
+end
+
+
+
+
+local picHeader1 = widgets.PaintBox.Create(frmComponents, "picHeader")
+picHeader1.left = 0
+picHeader1.top = 1
+picHeader1.width = app.canvas.size.x + 1
+picHeader1.height = 5
+picHeader1:refresh()
+if fs.exists("/Temp/" .. setup["application"].header) then
+	local canvas = user.loadCanvas("home:/Temp/" .. setup.application.header):scale(picHeader1.width, picHeader1.height)
+	picHeader1.canvas:draw(0, 0, canvas)
+end
+
+local lstComponents = widgets.ListBox.Create(frmComponents, "lstComponents", widgets)
+lstComponents.left = 0
+lstComponents.top = 7
+lstComponents.height = app.canvas.size.y - 14
+lstComponents.width = app.canvas.size.x + 1
+lstComponents.checkBoxes = true
+
+
+
+
+local picHeader1 = widgets.PaintBox.Create(frmReady, "picHeader")
+picHeader1.left = 0
+picHeader1.top = 1
+picHeader1.width = app.canvas.size.x + 1
+picHeader1.height = 5
+picHeader1:refresh()
+if fs.exists("/Temp/" .. setup["application"].header) then
+	local canvas = user.loadCanvas("home:/Temp/" .. setup.application.header):scale(picHeader1.width, picHeader1.height)
+	picHeader1.canvas:draw(0, 0, canvas)
+end
+
+local lbl1 = widgets.Label.Create(frmReady, "lbl1")
+lbl1.left = 2
+lbl1.top = 7
+lbl1.caption = expandVars(locale["17"])
+lbl1.width = app.canvas.size.x - 2
+lbl1.height = 1
+
+local lbl2 = widgets.Label.Create(frmReady, "lbl2")
+lbl2.left = 2
+lbl2.top = 9
+lbl2.caption = expandVars(locale["19"])
+lbl2.width = app.canvas.size.x - 2
+lbl2.height = 1
+
+local lbl3 = widgets.Label.Create(frmReady, "lbl3")
+lbl3.left = 2
+lbl3.top = 10
+lbl3.caption = expandVars(locale["20"])
+lbl3.width = app.canvas.size.x - 2
+lbl3.height = 1
+
+local lbl4 = widgets.Label.Create(frmReady, "lbl4")
+lbl4.left = 2
+lbl4.top = 12
+lbl4.caption = expandVars(locale["18"])
+lbl4.width = app.canvas.size.x - 2
+lbl4.height = 1
+
+
+--frmProgress.controlBox = false
+
+local btnNext = widgets.Button.Create(frmReady, "btnNext")
+btnNext.width = 9
+btnNext.left = app.canvas.size.x - btnNext.width
+btnNext.top = app.canvas.size.y - 2
+btnNext.caption = expandVars(locale["1"])
+
+local btnBack = widgets.Button.Create(frmReady, "btnBack")
+btnBack.width = 9
+btnBack.left = 2
+btnBack.top = app.canvas.size.y - 2
+btnBack.caption = expandVars(locale["2"])
+
+btnBack.onClick = function(sender)
+	if setup.components.show == "true" then
+		frmComponents:show()
+	else
+		if setup.path.show == "true" then
+			frmPath:show()
+		else
+			if setup.license.show == "true" then
+				frmLicense:show()
+			else
+				frmStart:show()
+			end
+		end
+	end
+end
+
+
+local picHeader1 = widgets.PaintBox.Create(frmProgress, "picHeader")
+picHeader1.left = 0
+picHeader1.top = 1
+picHeader1.width = app.canvas.size.x + 1
+picHeader1.height = 5
+picHeader1:refresh()
+if fs.exists("/Temp/" .. setup["application"].header) then
+	local canvas = user.loadCanvas("home:/Temp/" .. setup.application.header):scale(picHeader1.width, picHeader1.height)
+	picHeader1.canvas:draw(0, 0, canvas)
+end
+
+
+
+
+
+
+
+
+
+btnNext.onClick = function(sender)
+	frmProgress:show()
+
+	app:createThread(function()
+		local function installPackage(name)
+			local function countFiles(path)
+				local result = 0
+				local ls = fs.list(tostring(string.gsub(path, "home:/", "")))
+				pbProgress.max = #ls
+				pbProgress.position = 0
+				coroutine.yield()
+
+				for i, v in ipairs(ls) do
+					if (v ~= ".") and (v ~= "..") then
+						if fs.isDir(tostring(string.gsub(path, "home:/", "") .. "/" .. v)) then
+							result = result + countFiles(path .. "/" .. v)
+						else
+							result = result + 1
+							pbProgress.position = pbProgress.position + 1
+							coroutine.yield()
+						end
+					end
+				end
+				return result
+			end
+
+			local function copyFiles(parent, path)
+				local fullPath = tostring(string.gsub(parent .. "/" .. path, "home:/", ""))
+				local ls = fs.list(fullPath)
+				for k, v in pairs(ls) do
+					if fs.isDir(fullPath .. "/" .. v) then
+						copyFiles(parent, path .. "/" .. v)
+					else
+						local copyTo = tostring(string.gsub(expandVars("%PATH%"), "home:/", "/"))
+						fs.makeDir(copyTo .. "/" .. path)
+
+						local status, message = pcall(function()
+							fs.copy(fullPath .. "/" .. v, copyTo .. "/" .. path .. "/" .. v)
+						end)
+						if not status then
+							if string.find(message, "exist") and setup.application.override == "true" then
+								fs.delete(copyTo .. "/" .. path .. "/" .. v)
+								fs.copy(fullPath .. "/" .. v, copyTo .. "/" .. path .. "/" .. v)
+							end
+						end
+
+						pbProgress.position = pbProgress.position + 1
+						coroutine.yield()
+					end
+				end
+			end
+
+			function downloadFiles(data)
+				data = data or {}
+				data.meta = data.meta or {}
+				data.download = data.download or {}
+				data.meta.dpath = data.meta.dpath or ""
+
+				local count = 0
+				for k, v in pairs(data.download) do
+					count = count + 1
+				end
+
+				pbProgress.max = count
+				pbProgress.position = 0
+				coroutine.yield()
+
+				local http = os.findWindowByTitle("http service")
+
+				if http ~= nil then
+					for k, v in pairs(data.download) do
+						local waiting = true
+
+						function onSuccess(url, handle)
+							local file = fs.open(expandVars(k), "w")
+							file.write(handle.readAll())
+							file.close()
+							handle.close()
+							waiting = false
+
+							pbProgress.position = pbProgress.position + 1
+							coroutine.yield()
+						end
+
+						function onFail(url)
+							fs.delete("/temp/")
+							fs.delete("/w/")
+							fs.delete(expandVars("%PATH%"))
+							fs.delete("winldr")
+							os.shell.reboot()
+						end
+
+						os.sendMessage(http, {msg = "request", url = data.meta.dpath .. v, onSuccess = onSuccess, onFail = onFail})
+
+						while waiting do
+							coroutine.yield()
+						end
+					end
+				else
+					app:showMessage(expandVars(locale["34"]))
+				end
+			end
+
+
+			lblStatus.caption = expandVars(locale["21"])
+			
+			local package = iniFiles.read("home:/Temp/" .. name .. "/package.ini")
+			local download = iniFiles.read("home:/Temp/" .. name .. "/download.ini")
+			local total = countFiles("home:/Temp/" .. name .. "/data/")
+
+			pbProgress.max = total
+			pbProgress.position = 0
+			lblStatus.caption = ""
+			coroutine.yield()
+
+			lblStatus.caption = expandVars(locale["22"])
+			copyFiles("home:/Temp/" .. name .. "/data", "/")
+			lblStatus.caption = ""
+			coroutine.yield()
+
+			lblStatus.caption = expandVars(locale["33"])
+			downloadFiles(download)
+			lblStatus.caption = ""
+			coroutine.yield()
+
+			pbProgress.position = 0
+			lblStatus.caption = expandVars(locale["29"])
+			coroutine.yield()
+
+			local shortcuts = iniFiles.read("home:/Temp/" .. name .. "/shortcuts.ini")
+			pbProgress.max = 0
+			for k, v in pairs(shortcuts) do
+				pbProgress.max = pbProgress.max + 1
+			end
+
+			for k, v in pairs(shortcuts) do
+				local shortcut = {
+					shortcut = {
+						file = expandVars(v.path),
+						icon = expandVars(v.icon),
+					}
+				}
+
+				local dummy = fs.open(expandVars(v.location), "w")
+				dummy.write("")
+				dummy.close()
+
+				iniFiles.write(expandVars(v.location), shortcut)
+				pbProgress.position = pbProgress.position + 1
+				coroutine.yield()
+			end
+
+			if setup.application.os == "true" then
+				local file = fs.open("boot.ini", "w")
+				file.write("[boot]\r\npath = " .. expandVars("%PATH%") .. "\r\n")
+				file.write("[loader]\r\n" .. expandVars("%APPNAME% %VERSION% = %PATH%/drivers/kernel\r\n"))
+				file.close()
+			end
+		end
+
+		installing = true
+		installPackage(setup.components.default)
+
+		pbProgress.position = 0
+		lblStatus.caption = ""
+		coroutine.yield()
+
+		for k, v in pairs((setup.extentions) or {}) do
+			os.setRegistryKeyValue("extensions", k, v)
+		end
+
+		os.setRegistryKeyValue(
+			"installed", setup.application.name .. " " .. setup.application.version, setup.run_installed.cmd
+		)
+
+		if setup.application.uninstall then
+			local s = setup.application.name .. " " .. setup.application.version .. ".wpk"
+			if fs.exists(tostring(string.gsub(os.getSystemPath() .. "/setup/" .. s, "home:/", ""))) then
+				fs.delete(tostring(string.gsub(os.getSystemPath() .. "/setup/" .. s, "home:/", "")))
+			end
+
+			fs.copy(
+				tostring(string.gsub(params[2], "home:/", "")),
+				tostring(string.gsub(os.getSystemPath() .. "/setup/" .. s, "home:/", ""))
+			)
+
+			os.setRegistryKeyValue("uninstall", setup.application.name .. " " .. setup.application.version, s)
+		end
+
+		if setup.after.run == "true" then
+			os.shell.run(setup.after.cmd)
+		end
+
+		frmSuccess:show()
+		coroutine.yield()
+		installing = false
+	end)
+end
+
+
+
+local picHeader1 = widgets.PaintBox.Create(frmSuccess, "picHeader")
+picHeader1.left = 0
+picHeader1.top = 1
+picHeader1.width = app.canvas.size.x + 1
+picHeader1.height = 5
+picHeader1:refresh()
+if fs.exists("/Temp/" .. setup["application"].header) then
+	local canvas = user.loadCanvas("home:/Temp/" .. setup.application.header):scale(picHeader1.width, picHeader1.height)
+	picHeader1.canvas:draw(0, 0, canvas)
+end
+
+local lbl1 = widgets.Label.Create(frmSuccess, "lbl1")
+lbl1.left = 2
+lbl1.top = 7
+lbl1.caption = expandVars(locale["24"])
+lbl1.width = app.canvas.size.x - 2
+lbl1.height = 1
+
+local lbl2 = widgets.Label.Create(frmSuccess, "lbl2")
+lbl2.left = 2
+lbl2.top = 8
+lbl2.caption = expandVars(locale["25"])
+lbl2.width = app.canvas.size.x - 2
+lbl2.height = 1
+
+local chkRun = widgets.CheckBox.Create(frmSuccess, "chkRun")
+chkRun.left = 2
+chkRun.top = 11
+chkRun.caption = expandVars(locale["27"])
+chkRun.width = app.canvas.size.x - 2
+chkRun.height = 1
+chkRun.checked = setup.run_installed.checked == "true"
+
+local chkReadme = widgets.CheckBox.Create(frmSuccess, "chkReadme")
+chkReadme.left = 2
+chkReadme.top = 13
+chkReadme.caption = expandVars(locale["28"])
+chkReadme.width = app.canvas.size.x - 2
+chkReadme.height = 1
+chkReadme.checked = setup.show_readme.checked == "true"
+
+if setup.run_installed.show == "false" then
+	chkRun.visible = false
+	chkReadme.top = 11
+end
+
+if setup.show_readme.show == "false" then
+	chkReadme.visible = false
+end
+
+if uninstalling then
+	chkRun.visible = false
+	chkReadme.visible = false
+end
+
+
+
+local btnNext = widgets.Button.Create(frmSuccess, "btnNext")
+btnNext.width = 9
+btnNext.left = app.canvas.size.x - btnNext.width
+btnNext.top = app.canvas.size.y - 2
+btnNext.caption = expandVars(locale["26"])
+
+btnNext.onClick = function(sender)
+	if chkRun.visible and chkRun.checked then
+		os.shell.run(expandVars(setup.run_installed.cmd))
+	end
+
+	if chkReadme.visible and chkReadme.checked then
+		os.shell.run(expandVars(setup.show_readme.cmd))
+	end
+
+	fs.delete("/temp/")
+
+	if setup.application.os == "true" then
+		fs.delete("win.pk")
+		fs.delete("/w/")
+		os.shell.restart()
+	else
+		app:terminate()
+	end
+end
+
+
+
+
+local frmFailure = form.Create("Installation Failed")
+app:addForm(frmFailure, "Installation Failed")
+
+
+
+os.startTimer(0.01, function() if installing then os.sendMessage(hwnd, {msg = "refresh"}) end end)
+
+
+app.activeForm = frmStart
+app:run()]])
+table.insert(names, "/system2/shldr.app")
+table.insert(values, [[if config.AUTORUN ~= nil then
+	for k, v in pairs(config.AUTORUN) do
+		os.shell.run(v)
+	end
+end]])
+table.insert(names, "/system2/taskbar.app")
+table.insert(values, [[local app = application.Create(os.getProcessInfo(os.getCurrentProcess()), os)
+local taskbar = form.Create("Taskbar")
+taskbar.controlBox = false
+
+
+app:addForm(taskbar, "Taskbar")
+taskbar:show()
+
+
+taskbar.onRefresh = function(sender)
+	app.canvas:fillrect(1, 1, app.canvas.size.x, app.canvas.size.y, colors.black)
+end
+
+os.startTimer(1, function() taskbar:refresh() end )
+app:run()]])
+table.insert(names, "/system2/txt.pic")
+table.insert(values, [[pic|3|4|bc bc bc bc 0b=0b=0b=0b=0b=0bt0bx0bt]])
+table.insert(names, "/system2/unknown.pic")
+table.insert(values, [[pic|3|4|80 80 80 80 80 80?80?80 80 80 80 80 ]])
+table.insert(names, "/system2/win.ini")
+table.insert(values, [[[extensions]
+[system]
+timer = 0.05
+[installed]
+[desktop]
+bgcolor = 32768
+[uninstall]
+[autorun]
+1 = "run/startup.app"]])
+table.insert(names, "/system2/winver.app")
+table.insert(values, [[function CreateEffect(speed)
+	local effect = {
+		getbgcolor = function(self, x, y, bgcolor, forecolor, char)
+			if bgcolor == colors.purple then
+				return colors.white
+			else
+				return bgcolor
+			end
+		end,
+
+		getforecolor = function(self, x, y, bgcolor, forecolor, char)
+			return forecolor
+		end,
+
+		getchar = function(self, x, y, bgcolor, forecolor, char)
+			return char
+		end,
+	}
+
+	return effect
+end
+
+
+
+
+local app = application.Create(os.getProcessInfo(os.getCurrentProcess()), os)
+local frmMain = form.Create("About CCWin...")
+local sys_ver = os.getVersion()
+
+app:addForm(frmMain, "About CCWin...")
+frmMain:show()
+
+
+
+local logo = widgets.PaintBox.Create(frmMain, "logo")
+local logoImg = user.loadCanvas(os.getSystemPath() .. "/logo.pic")  --assets/Miku/idle.pic
+logo.height = logoImg.size.y
+logo.width = logoImg.size.x
+logo.top = 2
+logo.left = math.ceil(app.canvas.size.x / 2) - math.floor(logo.width / 2)
+logo.canvas = logoImg
+--logo.canvas.effect = CreateEffect()
+
+
+local lbl = widgets.Label.Create(frmMain, "lbl1")
+lbl.top = 3 + logo.height
+lbl.width = app.canvas.size.x
+lbl.align = "center"
+lbl.caption = " CCWIN " .. sys_ver.value .. " (build " .. tostring(sys_ver.build) .. ")"
+
+local lbl = widgets.Label.Create(frmMain, "lbl2")
+lbl.top = 3 + logo.height + 2
+lbl.width = app.canvas.size.x
+lbl.align = "center"
+lbl.caption = "(c) Puzzletime (8coon), 2014-2015"
+
+
+local btn = widgets.Button.Create(frmMain, "btn")
+btn.top = app.canvas.size.y - 2
+btn.caption = " Close"
+btn.onClick = function(sender) app:terminate() end
+btn.width = 9
+btn.left = math.floor(app.canvas.size.x / 2 - btn.width / 2) + 1
+
+
+
+
+local magic = widgets.Panel.Create(frmMain, "magic")
+magic.height = 1
+magic.width = app.canvas.size.x
+magic.top = app.canvas.size.y - 4
+magic.left = 0
+
+magic.onRefresh = function(sender)
+	if sender.canvas ~= nil and sender.canvas.effect == nil then
+		--sender.canvas.effect = CreateEffect(100000)
+	end
+end
+
+local lbl = widgets.Label.Create(magic, "lbl")
+lbl.width = app.canvas.size.x
+lbl.align = "center"
+lbl.caption = " "
+
+lbl.onClick = function(sender)
+	--\[-\[-if os.getMagic() == nil then
+		os.applyMagic(user.CreateEffect_Acid())
+	else
+		os.applyMagic(nil)
+	end\]-\]-
+end
+
+
+
+
+--os.startTimer(0.1, function() os.sendMessage(hwnd, {msg = "refresh"}) end )
+app:run()]])
+table.insert(names, "/sysWoW/pack")
+table.insert(values, [[local args = {...}
+local path = args[2]
+local filename = args[3]
+local self_extract = args[4]
+
+if not xwin then
+	path = args[1]
+	filename = args[2]
+	self_extract = args[3]
+end
+
+print(path)
+print(filename)
+print(self_extract)
+
+
+function flist(base, path)
+	local l = fs.list(base .. "/" .. path)
+	local ls = {}
+
+	for k, v in pairs(l) do
+		pcall(function()
+			if fs.isDir(base .. "/" .. path .. "/" .. v) then
+				local files = flist(base, path .. "/" .. v)
+				for kq, vq in pairs(files) do
+					table.insert(ls, vq)
+				end
+			else
+				table.insert(ls, path .. "/" .. v)
+			end
+		end)
+	end
+
+	return ls
+end
+
+
+local data = {}
+table.insert(data, "local names = {}\nlocal values = {}\n")
+local files = flist("/" .. path, "")
+for k, v in pairs(files) do
+	pcall(function()
+		if not fs.isDir(path .. "/" .. v) then
+			local file = fs.open(path .. "/" .. v, "r")
+			local s = file.readAll()
+			file.close()
+
+			table.insert(data, "table.insert(names, \"" .. v .. "\")\n")
+			s = string.gsub(s, "%[%[", "\\%[%-\\%[%-")
+			s = string.gsub(s, "%]%]", "\\%]%-\\%]%-")
+			table.insert(data, "table.insert(values, \[-\[-" .. s .. "\]-\]-)\n")
+		end
+	end)
+end
+
+
+if self_extract == "-se" then
+	local se_code = \[-\[-
+local args = {...}
+local path = args[2] or "/temp"
+if not xwin then
+	path = args[1] or "/temp"
+end
+
+function _utStrSplit(self, sep)
+	local sep, fields = sep or ":", {}
+	local pattern = string.format("([^%s]+)", sep)
+	self:gsub(pattern, function(c) fields[#fields+1] = c end)
+	return fields
+end
+
+print("Unpacking LRC...")
+
+fs.makeDir(path)
+for i = 1, #names do
+	local l = _utStrSplit(names[i], "/")
+	local p = ""
+	if #l > 1 then
+		pcall(function()
+			for i = 1, #p - 2 do
+				p = p .. "/" .. l[i]
+			end
+		end)
+	end
+
+	pcall(function()
+		print("Unpacking " .. names[i] .. "...")
+		fs.makeDir(path .. "/" .. p)
+		local file = fs.open(path .. "/" .. names[i], "w")
+		values[i] = string.gsub(values[i], "\\%[%-\\%[%-", "%[%[")
+		values[i] = string.gsub(values[i], "\\%]%-\\%]%-", "%]%]")
+		file.write(values[i])
+		file.close()
+	end)
+end
+print("Done!")
+return names, values\]-\]-
+	table.insert(data, se_code)
+else
+	table.insert(data, "return names, values")
+end
+
+
+
+filename = "/" .. filename
+local f = fs.open(filename, "w")
+
+for i, v in ipairs(data) do
+	f.write(v)
+end
+
+f.close()
+print("Success!")]])
+table.insert(names, "/sysWoW/rombios")
+table.insert(values, [[G_ENV = {}
+
+
+
+-- /* http://lua-users.org/wiki/SplitJoin */ --
+function string:split(sep)
+	local sep, fields = sep or ":", {}
+	local pattern = string.format("([^%s]+)", sep)
+	self:gsub(pattern, function(c) fields[#fields+1] = c end)
+	return fields
+end
+
+function stringstarts(String,Start)
+   return string.sub(String,1,string.len(Start))==Start
+end
+
+function stringends(String,End)
+   return End=='' or string.sub(String,-string.len(End))==End
+end
+
+
+
+function os.run(env, file, ...)
+	local fenv = {}
+	env = env or {}
+	for k, v in pairs(getfenv(1)) do
+		fenv[k] = v
+	end
+	for k, v in pairs(env) do
+		fenv[k] = v
+	end
+
+	local p = assert(loadfile(file))
+
+	setfenv(p, fenv)
+	G_ENV = fenv
+
+	local args = args or {...}
+
+	if type(args) ~= "table" then
+		if type(args) == "string" then
+			local argList = string.split(args, " ")
+			local argsNew = {}
+			local cArg = ""
+			for i, v in ipairs(argList) do
+				local added = false
+				if stringstarts(v, "\"") and string.len(cArg) == 0 then
+					cArg = v
+					added = true
+				end
+
+				if stringends(v, "\"") and string.len(cArg) ~= 0 then
+					table.insert(argsNew, cArg)
+					added = true
+				end
+
+				if not added then
+					table.insert(argsNew, v)
+				end
+			end
+
+			args = argsNew
+		else
+			args = {args}
+		end
+	end
+	--error(args)
+
+	local thread = coroutine.create(p)
+	local running = true
+	local status = true
+	local err = ""
+
+	while running do
+		if coroutine.status(thread) ~= "dead" then
+			status, err = coroutine.resume(thread, unpack(args))
+			coroutine.yield()
+		else
+			running = false
+			if not status then
+				term.setTextColor(colors.red)
+				print(err)
+				term.setTextColor(colors.black)
+			end
+		end
+	end
+	--p(unpack(args))
+end
+
+
+local oldLoadAPI = os.loadAPI
+function os.loadAPI(fn)
+	code = loadfile(fn)
+	fn = string.split(fn, "/")
+	fn = fn[#fn]
+
+	local lib = {}
+	setmetatable(lib, { __index = getfenv() })
+	setfenv(code, lib)
+
+	result, err = pcall(code)
+	if not result then
+		error(err)
+	end
+
+	local final = {}
+	for k, v in pairs(lib) do
+		final[k] = v
+	end
+
+	if G_ENV[fn] == nil then
+		G_ENV[fn] = final
+	end
+
+	return final
+end
+
+
+sleep = function(t)
+	--print("sleeping " .. tostring(t))
+	os.sleep(t)
+end
+
+
+term.native = function()
+	return term
+end
+
+
+_EMULATED = true
+
+
+colors = {
+	white = 1,
+	orange = 2,
+	magenta = 4,
+	lightBlue = 8,
+	yellow = 16,
+	lime = 32,
+	pink = 64,
+	gray = 128,
+	lightGray = 256,
+	cyan = 512,
+	purple = 1024,
+	blue = 2048,
+	brown = 4096,
+	green = 8192,
+	red = 16384,
+	black = 32768,
+
+	combine = function( ... )
+	    local r = 0
+	    for n,c in ipairs( { ... } ) do
+	        r = bit32.bor(r,c)
+	    end
+	    return r
+	end,
+
+	subtract = function( colors, ... )
+		local r = colors
+		for n,c in ipairs( { ... } ) do
+			r = bit32.band(r, bit32.bnot(c))
+		end
+		return r
+	end,
+
+	test = function( colors, color )
+	    return ((bit32.band(colors, color)) == color)
+	end,
+}
+
+colors.grey = colors.gray
+colors.lightGrey = colors.lightGray
+colours = colors
+
+window = os.loadAPI("rom/apis/window")
+textutils = os.loadAPI("rom/apis/textutils")
+--colors = os.loadAPI("rom/apis/colors")
+--colours = os.loadAPI("rom/apis/colours")
+
+os.run(nil, "/rom/programs/shell")
+--os.run(nil, "/romtest")]])
+local args = {...}
+local path = args[2] or "/temp"
+if not xwin then
+	path = args[1] or "/temp"
+end
+
+function _utStrSplit(self, sep)
+	local sep, fields = sep or ":", {}
+	local pattern = string.format("([^%s]+)", sep)
+	self:gsub(pattern, function(c) fields[#fields+1] = c end)
+	return fields
+end
+
+print("Unpacking LRC...")
+
+fs.makeDir(path)
+for i = 1, #names do
+	local l = _utStrSplit(names[i], "/")
+	local p = ""
+	if #l > 1 then
+		pcall(function()
+			for i = 1, #p - 2 do
+				p = p .. "/" .. l[i]
+			end
+		end)
+	end
+
+	pcall(function()
+		print("Unpacking " .. names[i] .. "...")
+		fs.makeDir(path .. "/" .. p)
+		local file = fs.open(path .. "/" .. names[i], "w")
+		values[i] = string.gsub(values[i], "\\%[%-\\%[%-", "%[%[")
+		values[i] = string.gsub(values[i], "\\%]%-\\%]%-", "%]%]")
+		file.write(values[i])
+		file.close()
+	end)
+end
+print("Done!")
+
+if fs.exists("startup") then fs.copy("startup", "startup.old") end
+fs.copy(path .. "/startup", "startup")
+shell.run("\"" .. path .. "/drivers/kernel" .. "\" \"" .. path .. "\"")
