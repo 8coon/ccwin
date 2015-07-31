@@ -7803,6 +7803,10 @@ _EMULATED = true
 window = os.loadAPI("rom/apis/window")
 textutils = os.loadAPI("rom/apis/textutils")
 colors = os.loadAPI("rom/apis/colors")
+_ENV = {}
+for k, v in pairs(colors) do
+	_ENV[k] = v
+end
 colours = os.loadAPI("rom/apis/colours")
 
 os.run(nil, "/rom/programs/shell")
