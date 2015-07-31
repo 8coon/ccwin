@@ -85,7 +85,14 @@ end
 
 fs = {
 	list = function(path)
-		return _fs.list(fn(path))
+		local l = _fs.list(fn(path))
+		local result = {}
+		for i, v in ipairs(l) do
+			if not (user.stringends(string.lower(v), ".ds_store")) then
+				table.insert(result, v)
+			end
+		end
+		return result
 	end,
 
 	exists = function(path)
