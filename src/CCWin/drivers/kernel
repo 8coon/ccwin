@@ -1,6 +1,6 @@
 local VERSION_NEW = {
-	build = 100.0003,
-	value = "1.0-alpha.3",
+	build = 100.0004,
+	value = "1.0-alpha.4",
 }
 
 
