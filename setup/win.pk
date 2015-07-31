@@ -88,7 +88,14 @@ end
 
 fs = {
 	list = function(path)
-		return _fs.list(fn(path))
+		l = _fs.list(fn(path))
+		result = []
+		for i, v in ipairs(l) do
+			if not (string.lower(v) == ".ds_store") then
+				table.insert(result, v)
+			end
+		end
+		return result
 	end,
 
 	exists = function(path)
