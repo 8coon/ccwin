@@ -62,7 +62,7 @@ listView.onClick = function(sender)
 			if listView.list[selected[1]].dir then
 				os.shell.run("explorer \"" .. listView.path .. "/" .. listView.list[selected[1]].name .. "\"")
 			else
-				local fileName = string.gsub("home:/" .. listView.path .. "/" .. listView.list[selected[1]].name, "//", "/")
+				local fileName = string.gsub("\"home:/" .. listView.path .. "/" .. listView.list[selected[1]].name .. "\"", "//", "/")
 				os.shell.run(fileName)
 			end
 		end
