@@ -13,7 +13,7 @@ os.getProcessInfo(os.getCurrentProcess()).showInTaskbar = false
 
 
 local time = widgets.Label.Create(taskbar, "Time")
-time.width = 7
+time.width = 7 + 3
 time.left = app.canvas.size.x - time.width + 2
 time.top = 0
 time.align = "right"
@@ -25,6 +25,7 @@ time.onClick = function(sender)
 end
 
 time.onRefresh = function(sender)
+	useAM = os.getRegistryKeyValue("datetime", "useAM", "false") == "true"
 	sender.caption = tostring(textutils.formatTime(os.time(), useAM)) .. "%"
 end
 
@@ -47,7 +48,7 @@ end
 
 local rightButton = widgets.Button.Create(taskbar, "rightButton")
 rightButton.caption = ">"
-rightButton.left = 10 + app.canvas.size.x - 9 - 6 - 2 + 1
+rightButton.left = 10 + app.canvas.size.x - 9 - 6 - 2 + 1  - 3
 rightButton.width = 1
 rightButton.top = 0
 rightButton.forecolor2 = colors.lightGray
@@ -65,7 +66,7 @@ end
 local panel = widgets.Panel.Create(taskbar, "Panel")
 panel.top = 0
 panel.height = 2
-panel.width = app.canvas.size.x - 9 - 6 - 2
+panel.width = app.canvas.size.x - 9 - 6 - 2  - 3
 panel.left = 10
 panel.bgcolor = colors.gray
 

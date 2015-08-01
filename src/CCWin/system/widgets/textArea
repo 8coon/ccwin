@@ -211,14 +211,7 @@ function Create(_parent, name, widgets)
 		end,
 
 
-
-		refresh = function(self, refreshSyntax)
-			self.canvas = user.CreateCanvas(self.width, self.height)
-			self.canvas:fillrect(1, 1, self.width, self.height, self.bgcolor)
-			if self.scroll.left < 2 then self.scroll.left = 1 end
-
-
-
+		scrollBarsRefresh = function(self)
 			if self.widgets.verticalBar == nil then
 				self.widgets.verticalBar = scrollBar.Create(self, "verticalBar")
 				self.widgets.verticalBar.step = 1
@@ -232,8 +225,7 @@ function Create(_parent, name, widgets)
 			self.widgets.verticalBar.left = self.width
 			self.widgets.verticalBar.top = 0
 			self.widgets.verticalBar.height = self.height - 1
-
-
+			self.widgets.verticalBar.visible = true
 
 			if self.widgets.horisontalBar == nil then
 				self.widgets.horisontalBar = scrollBar.Create(self, "horisontalBar")
@@ -253,7 +245,17 @@ function Create(_parent, name, widgets)
 			self.widgets.horisontalBar.top = self.height - 1
 			self.widgets.horisontalBar.height = 1
 			self.widgets.horisontalBar.width = self.width - 1
+			self.widgets.horisontalBar.visible = true
+		end,
 
+
+
+		refresh = function(self, refreshSyntax)
+			self.canvas = user.CreateCanvas(self.width, self.height)
+			self.canvas:fillrect(1, 1, self.width, self.height, self.bgcolor)
+			if self.scroll.left < 2 then self.scroll.left = 1 end
+
+			self:scrollBarsRefresh()
 
 			if refreshSyntax then self.buffer = nil end
 
@@ -284,8 +286,14 @@ function Create(_parent, name, widgets)
 			self.canvas:draw(0, 0, self.buffer)
 
 
-			self.widgets.verticalBar:refresh()
-			self.widgets.horisontalBar:refresh()
+			if self.widgets.verticalBar.visible then
+				self.widgets.verticalBar:refresh()
+			end
+
+			if self.widgets.horisontalBar.visible then
+				self.widgets.horisontalBar:refresh()
+			end
+
 			self.parent:getCanvas():draw(self.left - 1, self.top, self.canvas)
 			self.parent:getCanvas():setCursorPos(self.left + self.width - 1, self.top + self.height)
 			self.parent:getCanvas().bgcolor = self.parent.bgcolor

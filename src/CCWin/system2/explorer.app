@@ -80,7 +80,7 @@ listView.onClick = function(sender)
 				listView:navigate(listView.list[selected[1]].name, true, os)
 				listView.selectedList = {}
 			else
-				local fileName = string.gsub("home:/" .. listView.path .. "/" .. listView.list[selected[1]].name, "//", "/")
+				local fileName = string.gsub("\"home:/" .. listView.path .. "/" .. listView.list[selected[1]].name .. "\"", "//", "/")
 				os.shell.run(fileName)
 			end
 		end

@@ -13,36 +13,43 @@ function Create(_parent, name)
 		focused = false,
 		visible = true,
 		align = "left",
+		multiline = false,
 
 
 		refresh = function(self)
 			local canvas = self.parent:getCanvas()
 			local x = self.left
 			local y = self.top
-			local str = self.caption
+			local lines = {self.caption}
+			if self.multiline then
+				lines = user.split(self.caption, "\n")
+			end
 
-			if self.parent.style ~= "none" then
+			for i, str in ipairs(lines) do
+				if self.parent.style ~= "none" then
+					y = y + 1
+				end
+
+				canvas:fillrect(self.left, y, self.width - 1, self.height - 1, self.bgcolor)
+				
+				if string.len(str) > self.width then
+					str = string.sub(str, 1, self.width - 2) .. ".."
+				end
+
+				if self.align == "right" then
+					x = self.left + self.width - string.len(str)
+				end
+
+				if self.align == "center" then
+					x = self.left + math.floor(self.width / 2) - math.floor(string.len(str) / 2)
+				end
+
+				canvas:setCursorPos(x, y)
+				canvas.bgcolor = self.bgcolor
+				canvas.forecolor = self.forecolor
+				canvas:write(str)
 				y = y + 1
 			end
-
-			canvas:fillrect(self.left, y, self.width - 1, self.height - 1, self.bgcolor)
-			
-			if string.len(str) > self.width then
-				str = string.sub(str, 1, self.width - 2) .. ".."
-			end
-
-			if self.align == "right" then
-				x = self.left + self.width - string.len(str)
-			end
-
-			if self.align == "center" then
-				x = self.left + math.floor(self.width / 2) - math.floor(string.len(str) / 2)
-			end
-
-			canvas:setCursorPos(x, y)
-			canvas.bgcolor = self.bgcolor
-			canvas.forecolor = self.forecolor
-			canvas:write(str)
 		end
 	}
 
