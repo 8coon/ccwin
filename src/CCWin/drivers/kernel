@@ -1,6 +1,6 @@
 local VERSION_NEW = {
-	build = 100.0004,
-	value = "1.0-alpha.4",
+	build = 100.0005,
+	value = "1.0-alpha.5",
 }
 
 
@@ -857,6 +857,10 @@ local function CreateProcess(fileName, params, kernelMode)
 			end,
 		},
 
+		parsers = {
+			html = HTMLParser,
+		},
+
 		widgets = {
 			Label = label,
 			Button = button,
@@ -1089,6 +1093,8 @@ function Init()
 	os.loadAPI(GetOsPath() .. "/system/iniFiles")
 	os.loadAPI(GetOsPath() .. "/system/pathutils")
 	os.loadAPI(GetOsPath() .. "/system/dialogs")
+
+	os.loadAPI(GetOsPath() .. "/system/HTMLParser")
 
 	os.loadAPI(GetOsPath() .. "/system/widgets/label")
 	os.loadAPI(GetOsPath() .. "/system/widgets/button")
