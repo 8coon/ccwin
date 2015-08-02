@@ -6328,6 +6328,18 @@ startup = startup
 %PATH%/assets/Miku/s2.pic = CCWin/assets/Miku/s2.pic
 %PATH%/assets/Miku/up.pic = CCWin/assets/Miku/up.pic
 
+%PATH%/assets/DigitalFont/0.pic = CCWin/assets/DigitalFont/0.pic
+%PATH%/assets/DigitalFont/1.pic = CCWin/assets/DigitalFont/1.pic
+%PATH%/assets/DigitalFont/2.pic = CCWin/assets/DigitalFont/2.pic
+%PATH%/assets/DigitalFont/3.pic = CCWin/assets/DigitalFont/3.pic
+%PATH%/assets/DigitalFont/4.pic = CCWin/assets/DigitalFont/4.pic
+%PATH%/assets/DigitalFont/5.pic = CCWin/assets/DigitalFont/5.pic
+%PATH%/assets/DigitalFont/6.pic = CCWin/assets/DigitalFont/6.pic
+%PATH%/assets/DigitalFont/7.pic = CCWin/assets/DigitalFont/7.pic
+%PATH%/assets/DigitalFont/8.pic = CCWin/assets/DigitalFont/8.pic
+%PATH%/assets/DigitalFont/9.pic = CCWin/assets/DigitalFont/9.pic
+%PATH%/assets/DigitalFont/dots.pic = CCWin/assets/DigitalFont/dots.pic
+
 %PATH%/drivers/0fs.app = CCWin/drivers/0fs.app
 %PATH%/drivers/http.app = CCWin/drivers/http.app
 %PATH%/drivers/kernel = CCWin/drivers/kernel
@@ -6402,8 +6414,6 @@ startup = startup
 %PATH%/system2/win.ini = CCWin/system2/win.ini
 %PATH%/system2/winver.app = CCWin/system2/winver.app
 %PATH%/system2/tasktrap.app = CCWin/system2/tasktrap.app
-%PATH%/system2/update.app = CCWin/system2/update.app
-%PATH%/system2/datetime.app = CCWin/system2/datetime.app
 
 %PATH%/userdata/Documents/dummy.txt = CCWin/userdata/Documents/dummy.txt\]-\]-)
 table.insert(names, "/package/package.ini")
