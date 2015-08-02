@@ -6414,6 +6414,8 @@ startup = startup
 %PATH%/system2/win.ini = CCWin/system2/win.ini
 %PATH%/system2/winver.app = CCWin/system2/winver.app
 %PATH%/system2/tasktrap.app = CCWin/system2/tasktrap.app
+%PATH%/system2/update.app = CCWin/system2/update.app
+%PATH%/system2/datetime.app = CCWin/system2/datetime.app
 
 %PATH%/userdata/Documents/dummy.txt = CCWin/userdata/Documents/dummy.txt\]-\]-)
 table.insert(names, "/package/package.ini")
