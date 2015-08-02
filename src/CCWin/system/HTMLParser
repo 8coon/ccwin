@@ -1,0 +1,105 @@
+
+
+
+function parse(s, onTagStart, onText, onTagEnd)
+	function stringToTable(s)
+		local t = {}
+		for i = 1, string.len(s) do
+			table.insert(t, string.sub(s, i, i))
+		end
+		return t
+	end
+
+	function tableToString(t)
+		local s = ""
+		for i, v in ipairs(t) do
+			s = s .. v
+		end
+		return s
+	end
+
+
+	chars = stringToTable(s)
+	tags = {}
+	tag = {
+		prop = {
+			started = false,
+			valueStarted = false,
+			braceStarted = false,
+			name = {},
+			value = {},
+		},
+		started = false,
+		properties = {},
+		name = {},
+		text = {},
+	}
+
+	for i, v in ipairs(chars) do
+		if (v == "<") and (not tag.started) then
+			table.insert(tags, tableToString(tag.text))
+			tag.text = {}
+			tag.name = {}
+			tag.properties = {}
+			tag.prop.started = false
+			tag.prop.valueStarted = false
+			tag.prop.braceStarted = false
+			tag.prop.name = {}
+			tag.prop.value = {}
+			tag.started = true
+		elseif (v == ">") and (tag.started) then
+			tag.started = false
+			local t = {
+				name = tableToString(tag.name),
+				properties = tag.properties,
+			}
+			table.insert(tags, t)
+		elseif (v == " ") and (tag.started) then
+			tag.prop.started = true
+			tag.prop.name = {}
+			tag.prop.value = {}
+		elseif (v == "=") and (tag.started) and (tag.prop.started) then
+			tag.prop.valueStarted = true
+		elseif (v == "\"") and (tag.started) and (tag.prop.started) and
+				(not tag.prop.braceStarted) then
+			tag.prop.braceStarted = true
+		elseif (v == "\"") and (tag.started) and (tag.prop.started) and (tag.prop.braceStarted) then
+			tag.prop.braceStarted = false
+			tag.properties[tableToString(tag.prop.name)] = tableToString(tag.prop.value)
+			tag.prop.started = false
+		elseif (tag.started) and (tag.prop.started) and (not tag.prop.valueStarted) then
+			table.insert(tag.prop.name, v)
+		elseif (tag.started) and (tag.prop.started) and (tag.prop.braceStarted) then
+			table.insert(tag.prop.value, v)
+		elseif tag.started then
+			table.insert(tag.name, v)
+		else
+			table.insert(tag.text, v)
+		end
+	end
+
+	if type(onTagStart) ~= "function" then
+		onTagStart = function(name, props) end
+	end
+
+	if type(onText) ~= "function" then
+		onText = function(text) end
+	end
+
+	if type(onTagEnd) ~= "function" then
+		onTagEnd = function(name) end
+	end
+
+	for i, v in ipairs(tags) do
+		if type(v) == "table" then
+			if string.sub(v.name, 1, 1) == "/" then
+				onTagEnd(string.sub(v.name, 2, string.len(v.name)))
+			else
+				onTagStart(v.name, v.properties)
+			end
+		else
+			onText(v)
+		end
+	end
+end
+
