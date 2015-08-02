@@ -282,8 +282,8 @@ kernel.kiUnRegisterEventReceiver("http_success")
 kernel.kiUnRegisterEventReceiver("http_failure")]])
 table.insert(names, "/drivers/kernel")
 table.insert(values, [[local VERSION_NEW = {
-	build = 100.0003,
-	value = "1.0-alpha.3",
+	build = 100.0004,
+	value = "1.0-alpha.4",
 }
 
 
@@ -4134,36 +4134,43 @@ function Create(_parent, name)
 		focused = false,
 		visible = true,
 		align = "left",
+		multiline = false,
 
 
 		refresh = function(self)
 			local canvas = self.parent:getCanvas()
 			local x = self.left
 			local y = self.top
-			local str = self.caption
+			local lines = {self.caption}
+			if self.multiline then
+				lines = user.split(self.caption, "\n")
+			end
 
-			if self.parent.style ~= "none" then
+			for i, str in ipairs(lines) do
+				if self.parent.style ~= "none" then
+					y = y + 1
+				end
+
+				canvas:fillrect(self.left, y, self.width - 1, self.height - 1, self.bgcolor)
+				
+				if string.len(str) > self.width then
+					str = string.sub(str, 1, self.width - 2) .. ".."
+				end
+
+				if self.align == "right" then
+					x = self.left + self.width - string.len(str)
+				end
+
+				if self.align == "center" then
+					x = self.left + math.floor(self.width / 2) - math.floor(string.len(str) / 2)
+				end
+
+				canvas:setCursorPos(x, y)
+				canvas.bgcolor = self.bgcolor
+				canvas.forecolor = self.forecolor
+				canvas:write(str)
 				y = y + 1
 			end
-
-			canvas:fillrect(self.left, y, self.width - 1, self.height - 1, self.bgcolor)
-			
-			if string.len(str) > self.width then
-				str = string.sub(str, 1, self.width - 2) .. ".."
-			end
-
-			if self.align == "right" then
-				x = self.left + self.width - string.len(str)
-			end
-
-			if self.align == "center" then
-				x = self.left + math.floor(self.width / 2) - math.floor(string.len(str) / 2)
-			end
-
-			canvas:setCursorPos(x, y)
-			canvas.bgcolor = self.bgcolor
-			canvas.forecolor = self.forecolor
-			canvas:write(str)
 		end
 	}
 
@@ -5345,14 +5352,7 @@ function Create(_parent, name, widgets)
 		end,
 
 
-
-		refresh = function(self, refreshSyntax)
-			self.canvas = user.CreateCanvas(self.width, self.height)
-			self.canvas:fillrect(1, 1, self.width, self.height, self.bgcolor)
-			if self.scroll.left < 2 then self.scroll.left = 1 end
-
-
-
+		scrollBarsRefresh = function(self)
 			if self.widgets.verticalBar == nil then
 				self.widgets.verticalBar = scrollBar.Create(self, "verticalBar")
 				self.widgets.verticalBar.step = 1
@@ -5366,8 +5366,7 @@ function Create(_parent, name, widgets)
 			self.widgets.verticalBar.left = self.width
 			self.widgets.verticalBar.top = 0
 			self.widgets.verticalBar.height = self.height - 1
-
-
+			self.widgets.verticalBar.visible = true
 
 			if self.widgets.horisontalBar == nil then
 				self.widgets.horisontalBar = scrollBar.Create(self, "horisontalBar")
@@ -5387,7 +5386,17 @@ function Create(_parent, name, widgets)
 			self.widgets.horisontalBar.top = self.height - 1
 			self.widgets.horisontalBar.height = 1
 			self.widgets.horisontalBar.width = self.width - 1
+			self.widgets.horisontalBar.visible = true
+		end,
 
+
+
+		refresh = function(self, refreshSyntax)
+			self.canvas = user.CreateCanvas(self.width, self.height)
+			self.canvas:fillrect(1, 1, self.width, self.height, self.bgcolor)
+			if self.scroll.left < 2 then self.scroll.left = 1 end
+
+			self:scrollBarsRefresh()
 
 			if refreshSyntax then self.buffer = nil end
 
@@ -5418,8 +5427,14 @@ function Create(_parent, name, widgets)
 			self.canvas:draw(0, 0, self.buffer)
 
 
-			self.widgets.verticalBar:refresh()
-			self.widgets.horisontalBar:refresh()
+			if self.widgets.verticalBar.visible then
+				self.widgets.verticalBar:refresh()
+			end
+
+			if self.widgets.horisontalBar.visible then
+				self.widgets.horisontalBar:refresh()
+			end
+
 			self.parent:getCanvas():draw(self.left - 1, self.top, self.canvas)
 			self.parent:getCanvas():setCursorPos(self.left + self.width - 1, self.top + self.height)
 			self.parent:getCanvas().bgcolor = self.parent.bgcolor
@@ -6387,6 +6402,8 @@ startup = startup
 %PATH%/system2/win.ini = CCWin/system2/win.ini
 %PATH%/system2/winver.app = CCWin/system2/winver.app
 %PATH%/system2/tasktrap.app = CCWin/system2/tasktrap.app
+%PATH%/system2/update.app = CCWin/system2/update.app
+%PATH%/system2/datetime.app = CCWin/system2/datetime.app
 
 %PATH%/userdata/Documents/dummy.txt = CCWin/userdata/Documents/dummy.txt\]-\]-)
 table.insert(names, "/package/package.ini")
