@@ -109,6 +109,40 @@ function Create(_parent, name)
 		end,
 
 
+		mouseDrag = function(self, button, x, y)
+			self.focusedWidget = nil
+
+			for name, widget in pairs(self.widgets) do
+				if (x >= widget.left) and (x < widget.left + widget.width) and 
+					(y > widget.top) and (y <= widget.top + widget.height) then
+					self.focusedWidget = widget
+
+
+					if widget.onMouseDrag ~= nil then
+						widget:onMouseDrag(button, x, y)
+					end
+
+					if widget.mouseDrag ~= nil then
+						widget:mouseDrag(button, x, y)
+					end
+				end
+			end
+		end,
+
+
+		mouseScroll = function(self, button, x, y)
+			for name, widget in pairs(self.widgets) do
+				if widget.onMouseScroll ~= nil then
+					widget:onMouseScroll(button, x, y)
+				end
+
+				if widget.mouseScroll ~= nil then
+					widget:mouseScroll(button, x, y)
+				end
+			end
+		end,
+
+
 		keyPress = function(self, key, char)
 			if self.focusedWidget ~= nil then
 				if self.focusedWidget.keyPress ~= nil then
