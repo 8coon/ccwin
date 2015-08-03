@@ -1308,7 +1308,9 @@ function Main()
 									caption = pathutils.extractFileName(process.fileName),
 									buttons = { { caption = "OK", onClick = function(sender) 
 										processes[TASKBAR_PROCESS].message = nil
-										processes[ACTIVE_PROCESS].canvas.effect = nil
+										if processes[ACTIVE_PROCESS] ~= nil then
+											processes[ACTIVE_PROCESS].canvas.effect = nil
+										end
 									end } }, 
 									defText = "" }, 
 								screen, button)
@@ -1402,12 +1404,13 @@ function Main()
 				event = "refresh"
 			end
 
-			if (event == "key") or (event == "char") or (event == "mouse_click") or (event == "mouse_drag") then
+			if (event == "key") or (event == "char") or (event == "mouse_click") or (event == "mouse_drag") or (event == "mouse_scroll") then
 				if ACTIVE_PROCESS > 0 then
 					local char = ""
 					if event == "char" then char = key end
+					--error(processes[ACTIVE_PROCESS])
 
-					if (not ((event == "mouse_click") and (lastMenu ~= nil))) and processes[ACTIVE_PROCESS].message == nil then
+					if (not ((event == "mouse_click") and (lastMenu ~= nil))) --[[and processes[ACTIVE_PROCESS].message == nil]] then
 						SendMessage(ACTIVE_PROCESS, { msg = event, key = key, char = char, button = key, x = x, y = y, n = y })
 					else
 						if processes[ACTIVE_PROCESS].message ~= nil then
