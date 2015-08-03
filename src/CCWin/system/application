@@ -76,7 +76,9 @@ function Create(processInfo, _os)
 						end
 
 						if message.msg == "mouse_scroll" then
+							--error("scroll")
 							if self.activeForm.mouseScroll ~= nil then
+								--error("scroll")
 								self.activeForm:mouseScroll(message.button, message.x, message.y)
 							end
 						end
