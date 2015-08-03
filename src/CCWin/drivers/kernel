@@ -944,6 +944,8 @@ local function CreateProcess(fileName, params, kernelMode)
 	else
 		setfenv(program, env)
 	end
+
+	env._G = env
 	
 	process.thread = coroutine.create(program)
 	process.env = { timer = timer }
