@@ -198,6 +198,20 @@ function Create(name)
 		end,
 
 
+		mouseScroll = function(self, button, x, y)
+			--error("scroll")
+			for name, widget in pairs(self.widgets) do
+				if widget.onMouseScroll ~= nil then
+					widget:onMouseScroll(button, x, y)
+				end
+
+				if widget.mouseScroll ~= nil then
+					widget:mouseScroll(button, x, y)
+				end
+			end
+		end,
+
+
 		keyPress = function(self, key, char)
 			if self.focusedWidget ~= nil then
 				if self.focusedWidget.keyPress ~= nil then
