@@ -26,9 +26,11 @@ function Create(_parent, name)
 				y = y + 1
 			end
 
-			canvas:fillrect(self.left, y, self.width - 1, self.height - 1, colors.white)
+			if canvas ~= nil then
+				canvas:fillrect(self.left, y, self.width - 1, self.height - 1, colors.white)
+			end
 
-			if self.vertical == true then
+			if (self.vertical == true) and (canvas ~= nil) then
 				canvas:setCursorPos(x, y)
 				canvas.bgcolor = colors.gray
 				canvas.forecolor = colors.lightGray
@@ -45,7 +47,7 @@ function Create(_parent, name)
 
 				canvas:setCursorPos(x, y + selPos)
 				canvas:write(" ")
-			else
+			elseif (canvas ~= nil) then
 				canvas:setCursorPos(x, y)
 				canvas.bgcolor = colors.gray
 				canvas.forecolor = colors.lightGray
@@ -74,6 +76,21 @@ function Create(_parent, name)
 				end
 
 				self.value = self.value + delta
+				if self.value < self.min then self.value = self.min end
+				if self.value > self.max then self.value = self.max end
+
+				self:refresh()
+				if self.onChange ~= nil then
+					self:onChange()
+				end
+			end
+		end,
+
+
+		mouseScroll = function(self, direction, x, y)
+			--error("scroll")
+			if self.vertical == true then
+				self.value = self.value + direction
 				if self.value < self.min then self.value = self.min end
 				if self.value > self.max then self.value = self.max end
 
