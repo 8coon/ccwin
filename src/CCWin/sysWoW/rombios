@@ -19,8 +19,16 @@ function stringends(String,End)
 end
 
 
+last_run_path = "/"
+
+
+function extractFilePath(fn)
+	return (fn or "") .. "/../"
+end
+
 
 function os.run(env, file, ...)
+	last_run_path = extractFilePath(file)
 	local fenv = {}
 	env = env or {}
 	for k, v in pairs(getfenv(1)) do
@@ -29,6 +37,7 @@ function os.run(env, file, ...)
 	for k, v in pairs(env) do
 		fenv[k] = v
 	end
+	fenv._G = fenv
 
 	local p = assert(loadfile(file))
 
@@ -90,6 +99,9 @@ end
 
 local oldLoadAPI = os.loadAPI
 function os.loadAPI(fn)
+	if string.sub(fn, 1, 1) ~= "/" then
+		fn = last_run_path .. "/" .. fn
+	end
 	code = loadfile(fn)
 	fn = string.split(fn, "/")
 	fn = fn[#fn]
@@ -178,5 +190,6 @@ textutils = os.loadAPI("rom/apis/textutils")
 --colors = os.loadAPI("rom/apis/colors")
 --colours = os.loadAPI("rom/apis/colours")
 
+os.run(nil, os.getSystemPath() .. "/sysWoW/fsdriver")
 os.run(nil, "/rom/programs/shell")
 --os.run(nil, "/romtest")
