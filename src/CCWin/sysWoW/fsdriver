@@ -1,0 +1,79 @@
+__PATH_ROOT = ""
+
+
+function fn(path)
+	return __PATH_ROOT .. "/" .. path
+end
+
+_fs = {}
+for k, v in pairs(fs) do
+	_fs[k] = v
+end
+
+
+fs = {
+	list = function(path)
+		local result = _fs.list(fn(path))
+		return result
+	end,
+
+	exists = function(path)
+		return _fs.exists(fn(path))
+	end,
+
+	isDir = function(path)
+		return _fs.isDir(fn(path))
+	end,
+
+	isReadOnly = function(path)
+		return _fs.isReadOnly(fn(path))
+	end,
+
+	getName = function(path)
+		return _fs.getName(fn(path))
+	end,
+
+	getDrive = function(path)
+		return _fs.getDrive(fn(path))
+	end,
+
+	getSize = function(path)
+		return _fs.getSize(fn(path))
+	end,
+
+	getFreeSpace = function(path)
+		return _fs.getFreeSpace(fn(path))
+	end,
+
+	makeDir = function(path)
+		return _fs.makeDir(fn(path))
+	end,
+
+	move = function(fromPath, toPath)
+		return _fs.move(fn(fromPath), fn(toPath))
+	end,
+
+	copy = function(fromPath, toPath)
+		return _fs.copy(fn(fromPath), fn(toPath))
+	end,
+
+	delete = function(path)
+		return _fs.delete(fn(path))
+	end,
+
+	combine = function(basePath, localPath)
+		return _fs.combine(fn(basePath), fn(localPath))
+	end,
+
+	open = function(path, mode)
+		return _fs.open(fn(path), mode)
+	end,
+
+	find = function(wildcard)
+		return _fs.find(wildcard)
+	end,
+
+	getDir = function(path)
+		return _fs.getDir(fn(path))
+	end,
+}
