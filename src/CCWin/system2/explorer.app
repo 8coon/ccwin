@@ -867,9 +867,11 @@ end
 sides = peripheral.getNames()
 for i, v in ipairs(sides) do
 	if peripheral.getType(v) == "drive" then
-		places_locations[disk.getMountPath(v)] = "home:/" .. disk.getMountPath(v)
-		table.insert(places_titles, disk.getMountPath(v))
-		popularPlaces:add(disk.getMountPath(v))
+		if disk.getMountPath ~= nil then
+			places_locations[disk.getMountPath(v)] = "home:/" .. disk.getMountPath(v)
+			table.insert(places_titles, disk.getMountPath(v))
+			popularPlaces:add(disk.getMountPath(v))
+		end
 	end
 end
 
@@ -974,6 +976,7 @@ end
 
 local lastTimerTime = os.time()
 local delta = 0.05
+local ticks = 0
 
 local function timerRefresh()
 	if lastTimerTime > 0 then
@@ -988,6 +991,8 @@ local function timerRefresh()
 		os.sendMessage(hwnd, {msg = "refresh"})
 	end
 	lastTimerTime = os.time()
+
+	ticks = ticks + 1
 end
 
 os.startTimer(0.05, timerRefresh)
