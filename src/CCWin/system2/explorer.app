@@ -868,9 +868,12 @@ sides = peripheral.getNames()
 for i, v in ipairs(sides) do
 	if peripheral.getType(v) == "drive" then
 		if disk.getMountPath ~= nil then
-			places_locations[disk.getMountPath(v)] = "home:/" .. disk.getMountPath(v)
-			table.insert(places_titles, disk.getMountPath(v))
-			popularPlaces:add(disk.getMountPath(v))
+			local p = disk.getMountPath()
+			if p ~= nil then
+				places_locations[disk.getMountPath(v)] = "home:/" .. disk.getMountPath(v)
+				table.insert(places_titles, disk.getMountPath(v))
+				popularPlaces:add(disk.getMountPath(v))
+			end
 		end
 	end
 end
